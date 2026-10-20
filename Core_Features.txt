@@ -1,0 +1,18 @@
+Front-End:
+1. The app Should follow Glassmorphism theme 
+2. The color and U.I of App is glowing orange with dark theme
+
+Core Features of N.D.S:
+1.list of app to set a limit on them
+2.Strict Timers, setting up a timer up to 1 hour a day (Maximum is 1 hour, only for Instagram) no opening after the completion of app's Time limit
+3.No reset or removal option for the Limit after the completion
+4.Online Mode, You can make groups and compete with your friends and family
+5.Study Time table for Students with Notification (Let's keep this one for future)
+6.Scheduling tasks with calendar
+7.No options like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" will be added
+8.Scheduled time limit, Means the app will be unlocked for specific time and the app will be automatically closed after the completion of time
+(Like, only from 6pm to 7pm ).
+9.You cannot delete N.D.S, if you've completed the limit of a single app which is listed in distracting list
+
+																		"Focus"
+10. Focus is a feature that blocks the whole phone excluding Phone, Contacts and any 5 apps for emergency situations

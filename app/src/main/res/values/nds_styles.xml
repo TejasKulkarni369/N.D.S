@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.NDS.App" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/text_dim</item>
+        <item name="colorPrimary">@color/orange</item>
+        <item name="colorOnPrimary">@color/on_orange</item>
+        <item name="colorSurface">@color/bg</item>
+        <item name="android:fontFamily">@font/sora</item>
+        <item name="fontFamily">@font/sora</item>
+    </style>
+
+    <style name="NdsDialog" parent="Theme.Material3.Dark.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowAnimationStyle">@style/NdsDialogAnim</item>
+        <item name="android:fontFamily">@font/sora</item>
+        <item name="fontFamily">@font/sora</item>
+    </style>
+
+    <style name="NdsDialogAnim">
+        <item name="android:windowEnterAnimation">@anim/sheet_in</item>
+        <item name="android:windowExitAnimation">@anim/sheet_out</item>
+    </style>
+
+</resources>

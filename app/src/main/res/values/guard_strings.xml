@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guard_a11y_description">N.D.S uses this to block the uninstall and permission screens for N.D.S while one of your limits is used up. It only looks at Settings and installer screens, and nothing leaves your phone.</string>
+</resources>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/glass_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+    <ImageView
+        android:id="@+id/pickIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/pickName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="@color/text"
+        android:textSize="15sp" />
+
+    <CheckBox
+        android:id="@+id/pickBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:button="@drawable/checkbox_nds"
+        android:clickable="false"
+        android:focusable="false"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:padding="6dp"
+        app:buttonTint="@null"
+        app:useMaterialThemeColors="false" />
+</LinearLayout>
