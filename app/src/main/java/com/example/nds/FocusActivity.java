@@ -30,9 +30,10 @@ public class FocusActivity extends AppCompatActivity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private GlowRingView ring;
-    private TextView timeView;
+    private TextView timeView, swTime, swToggle, swReset;
     private boolean done = false;
 
+    // the Focus countdown, once per second
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
@@ -44,6 +45,21 @@ public class FocusActivity extends AppCompatActivity {
             timeView.setText(format(left));
             ring.setProgress(left / (float) FocusStore.totalMs(FocusActivity.this));
             handler.postDelayed(this, 1000 - (System.currentTimeMillis() % 1000) + 5);
+        }
+    };
+
+    // the stopwatch, ten times per second
+    private final Runnable swTick = new Runnable() {
+        @Override
+        public void run() {
+            long ms = StopwatchStore.elapsedMs(FocusActivity.this);
+            boolean running = StopwatchStore.isRunning(FocusActivity.this);
+
+            swTime.setText(formatWatch(ms));
+            swToggle.setText(running ? "Pause" : (ms > 0 ? "Resume" : "Start"));
+            swReset.setAlpha(ms > 0 ? 1f : 0.4f);
+
+            handler.postDelayed(this, 100);
         }
     };
 
@@ -69,6 +85,16 @@ public class FocusActivity extends AppCompatActivity {
 
         ring = findViewById(R.id.focusRing);
         timeView = findViewById(R.id.focusTime);
+        swTime = findViewById(R.id.swTime);
+        swToggle = findViewById(R.id.swToggle);
+        swReset = findViewById(R.id.swReset);
+
+        // stopwatch buttons
+        swToggle.setOnClickListener(v -> {
+            if (StopwatchStore.isRunning(this)) StopwatchStore.pause(this);
+            else StopwatchStore.start(this);
+        });
+        swReset.setOnClickListener(v -> StopwatchStore.reset(this));
 
         RecyclerView grid = findViewById(R.id.focusGrid);
         grid.setLayoutManager(new GridLayoutManager(this, 3));
@@ -82,8 +108,10 @@ public class FocusActivity extends AppCompatActivity {
             }
         });
 
-        // intro of Focus mode, then the screen with the allowed apps
+        // a new Focus session: stopwatch starts from zero, then the intro plays
         if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null) {
+            StopwatchStore.reset(this);
+
             content.setAlpha(0f);
             IntroView intro = new IntroView(this, "FOCUS", "Everything else can wait", true);
             ((ViewGroup) root).addView(intro, new FrameLayout.LayoutParams(
@@ -92,7 +120,7 @@ public class FocusActivity extends AppCompatActivity {
         }
     }
 
-    // Phone, Contacts, then the 5 emergency apps
+    // Phone, Contacts, then the emergency apps (1 to 5)
     private List<FocusAppAdapter.App> buildApps() {
         List<FocusAppAdapter.App> out = new ArrayList<>();
         Set<String> seen = new HashSet<>();
@@ -123,6 +151,15 @@ public class FocusActivity extends AppCompatActivity {
         return String.format(Locale.US, "%02d:%02d:%02d", sec / 3600, (sec % 3600) / 60, sec % 60);
     }
 
+    // HH:MM:SS.t (t = tenths of a second)
+    private static String formatWatch(long ms) {
+        long tenths = (ms / 100) % 10;
+        long sec = (ms / 1000) % 60;
+        long min = (ms / 60000) % 60;
+        long hours = ms / 3600000;
+        return String.format(Locale.US, "%02d:%02d:%02d.%d", hours, min, sec, tenths);
+    }
+
     private void finishFocus() {
         if (done) return;
         done = true;
@@ -136,6 +173,7 @@ public class FocusActivity extends AppCompatActivity {
         if (ring != null) {
             ring.startPulse();
             handler.post(tick);
+            handler.post(swTick);
         }
     }
 
@@ -143,6 +181,7 @@ public class FocusActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(tick);
+        handler.removeCallbacks(swTick);
         if (ring != null) ring.stopPulse();
     }
 }
