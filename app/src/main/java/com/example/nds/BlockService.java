@@ -131,7 +131,7 @@ public class BlockService extends Service {
         Notification n = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_lock)
                 .setContentTitle("N.D.S")
-                .setContentText("Be in Your Limits")
+                .setContentText("is Watching Your Limits")
                 .setContentIntent(pi)
                 .setOngoing(true)
                 .build();
@@ -154,6 +154,7 @@ public class BlockService extends Service {
             focusAllowed = FocusStore.allowed(this);
         } else {
             if (focusWas) {
+                StopwatchStore.reset(this);
                 Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
             }
             focusAllowed = new HashSet<>();

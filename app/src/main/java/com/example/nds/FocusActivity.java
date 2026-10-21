@@ -109,9 +109,8 @@ public class FocusActivity extends AppCompatActivity {
         });
 
         // a new Focus session: stopwatch starts from zero, then the intro plays
+        // a new Focus session: the intro plays (the stopwatch keeps what it already counted)
         if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null) {
-            StopwatchStore.reset(this);
-
             content.setAlpha(0f);
             IntroView intro = new IntroView(this, "FOCUS", "Everything else can wait", true);
             ((ViewGroup) root).addView(intro, new FrameLayout.LayoutParams(
@@ -163,6 +162,7 @@ public class FocusActivity extends AppCompatActivity {
     private void finishFocus() {
         if (done) return;
         done = true;
+        StopwatchStore.reset(this);
         Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
         finish();
     }

@@ -3,6 +3,8 @@ package com.example.nds;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,12 +29,30 @@ public class FocusSetupFragment extends Fragment {
 
     private static final int MIN_APPS = 1;   // pick at least 1 ...
 
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<AppList.Item> apps = new ArrayList<>();
     private final Set<String> picked = new LinkedHashSet<>();
 
     private EditText hh, mm, ss;
-    private TextView counter;
+    private TextView counter, swTime, swToggle, swReset;
     private RecyclerView list;
+
+    // the stopwatch, ten times per second
+    private final Runnable swTick = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded()) return;
+            Context ctx = requireContext();
+            long ms = StopwatchStore.elapsedMs(ctx);
+            boolean running = StopwatchStore.isRunning(ctx);
+
+            swTime.setText(formatWatch(ms));
+            swToggle.setText(running ? "Pause" : (ms > 0 ? "Resume" : "Start"));
+            swReset.setAlpha(ms > 0 ? 1f : 0.4f);
+
+            handler.postDelayed(this, 100);
+        }
+    };
 
     @Nullable
     @Override
@@ -44,11 +64,22 @@ public class FocusSetupFragment extends Fragment {
         mm = v.findViewById(R.id.focusM);
         ss = v.findViewById(R.id.focusS);
         counter = v.findViewById(R.id.focusCount);
+        swTime = v.findViewById(R.id.swTime);
+        swToggle = v.findViewById(R.id.swToggle);
+        swReset = v.findViewById(R.id.swReset);
         list = v.findViewById(R.id.focusPickList);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         setTime(0, 25, 0);
         updateCounter();
+
+        // stopwatch buttons
+        swToggle.setOnClickListener(b -> {
+            Context ctx = requireContext();
+            if (StopwatchStore.isRunning(ctx)) StopwatchStore.pause(ctx);
+            else StopwatchStore.start(ctx);
+        });
+        swReset.setOnClickListener(b -> StopwatchStore.reset(requireContext()));
 
         v.findViewById(R.id.preset25).setOnClickListener(b -> setTime(0, 25, 0));
         v.findViewById(R.id.preset60).setOnClickListener(b -> setTime(1, 0, 0));
@@ -78,6 +109,27 @@ public class FocusSetupFragment extends Fragment {
         }).start();
 
         return v;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        handler.post(swTick);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        handler.removeCallbacks(swTick);
+    }
+
+    // HH:MM:SS.t (t = tenths of a second)
+    private static String formatWatch(long ms) {
+        long tenths = (ms / 100) % 10;
+        long sec = (ms / 1000) % 60;
+        long min = (ms / 60000) % 60;
+        long hours = ms / 3600000;
+        return String.format(Locale.US, "%02d:%02d:%02d.%d", hours, min, sec, tenths);
     }
 
     private void setTime(int h, int m, int s) {
