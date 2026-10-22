@@ -1,4 +1,3 @@
-[Read_me.md](https://github.com/user-attachments/files/33817705/Read_me.md)
 **Meaning of Doom Scrolling:**
 
 Doom Scrolling means, The compulsive act of continuously scrolling through and consuming negative, upsetting, or depressing news/social media content, even though it causes distress or anxiety.
@@ -31,14 +30,17 @@ We don't even remember what was the first reel we saw or any other content we've
    How to Install Play Store > account settings > Play protect > settings > turn off both options
    
 Step -1:
+
 <img width="720" height="112" alt="step 1" src="https://github.com/user-attachments/assets/b883eb35-4375-4a53-9acf-515ebfe862fb" />
 
 Step - 2:
+
 <img width="720" height="1612" alt="step 2" src="https://github.com/user-attachments/assets/2c2f1cb4-89cc-477e-a640-9febb4e48f0a" />
 
 Step - 3:
+
 <img width="720" height="615" alt="step 3" src="https://github.com/user-attachments/assets/d06127d2-6640-4e41-bed1-8b628d05e3c5" />
 
 Step - 4:
-<img width="720" height="723" alt="step 4" src="https://github.com/user-attachments/assets/18277ca3-32dc-422c-9c4d-199f8c6f575a" />
 
+<img width="720" height="723" alt="step 4" src="https://github.com/user-attachments/assets/18277ca3-32dc-422c-9c4d-199f8c6f575a" />
