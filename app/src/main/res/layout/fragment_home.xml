@@ -121,6 +121,9 @@
 
             <!-- Today's balance: now above the app limits -->
             <LinearLayout
+                android:id="@+id/balanceCard"
+                android:clickable="true"
+                android:focusable="true"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -131,7 +134,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Today's balance"
+                    android:text="Today's balance · tap to see all apps"
                     android:textColor="@color/text_dim"
                     android:textSize="13sp" />
 

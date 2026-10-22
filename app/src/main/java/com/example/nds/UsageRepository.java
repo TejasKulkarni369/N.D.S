@@ -204,6 +204,100 @@ public class UsageRepository {
         return out;
     }
 
+    public static class DayStat {
+        public final long dayStart;   // midnight of that day (ms)
+        public int opens = 0;
+        public long millis = 0;
+
+        DayStat(long dayStart) {
+            this.dayStart = dayStart;
+        }
+    }
+
+    // times opened and screen time of one app for each of the last `days` days (oldest first)
+    @SuppressWarnings("deprecation")
+    public static List<DayStat> history(Context ctx, String target, int days) {
+        // midnight of every day, plus the midnight after the last one
+        long[] bounds = new long[days + 1];
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        c.add(Calendar.DAY_OF_YEAR, -(days - 1));
+        for (int i = 0; i <= days; i++) {
+            bounds[i] = c.getTimeInMillis();
+            c.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        List<DayStat> out = new ArrayList<>();
+        for (int i = 0; i < days; i++) {
+            out.add(new DayStat(bounds[i]));
+        }
+
+        UsageStatsManager usm =
+                (UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
+        long now = System.currentTimeMillis();
+        UsageEvents events = usm.queryEvents(bounds[0], now);
+        if (events == null) return out;
+
+        UsageEvents.Event e = new UsageEvents.Event();
+        String cur = null;
+        long curStart = 0;
+        String lastPausedPkg = null;
+        long lastPausedAt = 0;
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(e);
+            int type = e.getEventType();
+            long t = e.getTimeStamp();
+
+            if (type == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                String pkg = e.getPackageName();
+                if (!pkg.equals(cur)) {
+                    addSession(out, bounds, target, cur, curStart, t);
+                    boolean quickReturn = pkg.equals(lastPausedPkg) && t - lastPausedAt < 1500;
+                    if (!quickReturn && pkg.equals(target)) countOpen(out, bounds, t);
+                    cur = pkg;
+                    curStart = t;
+                }
+            } else if (type == UsageEvents.Event.MOVE_TO_BACKGROUND) {
+                String pkg = e.getPackageName();
+                if (pkg.equals(cur)) {
+                    addSession(out, bounds, target, cur, curStart, t);
+                    cur = null;
+                }
+                lastPausedPkg = pkg;
+                lastPausedAt = t;
+            } else if (type == UsageEvents.Event.SCREEN_NON_INTERACTIVE
+                    || type == UsageEvents.Event.DEVICE_SHUTDOWN) {
+                addSession(out, bounds, target, cur, curStart, t);
+                cur = null;
+            }
+        }
+        addSession(out, bounds, target, cur, curStart, now);   // still on screen
+        return out;
+    }
+
+    // add one session of the target app to the days it covers
+    private static void addSession(List<DayStat> out, long[] bounds, String target,
+                                   String pkg, long start, long end) {
+        if (pkg == null || !pkg.equals(target) || end <= start) return;
+        for (int i = 0; i < out.size(); i++) {
+            long from = Math.max(start, bounds[i]);
+            long to = Math.min(end, bounds[i + 1]);
+            if (to > from) out.get(i).millis += to - from;
+        }
+    }
+
+    private static void countOpen(List<DayStat> out, long[] bounds, long t) {
+        for (int i = 0; i < out.size(); i++) {
+            if (t >= bounds[i] && t < bounds[i + 1]) {
+                out.get(i).opens++;
+                return;
+            }
+        }
+    }
     public static String formatMinutes(int min) {
         if (min < 60) return min + "m";
         int h = min / 60;

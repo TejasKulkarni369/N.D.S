@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/glass_sheet"
+        android:clipChildren="false"
         android:orientation="vertical"
         android:padding="24dp">
 
@@ -145,6 +146,31 @@
             android:layout_marginTop="8dp"
             android:textColor="@color/text_dim"
             android:textSize="12sp" />
+
+        <!-- history: last 7 days -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="History"
+            android:textColor="@color/text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Last 7 days · times opened and screen time"
+            android:textColor="@color/text_dim"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/detailHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:orientation="vertical" />
 
         <TextView
             android:id="@+id/detailNote"

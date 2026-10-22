@@ -271,6 +271,16 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
+    // opens the list of apps used today (from the Today's balance card)
+    public void openUsedToday() {
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
+                        R.anim.slide_in_left, R.anim.slide_out_right)
+                .replace(R.id.fragmentContainer, new UsedTodayFragment())
+                .addToBackStack("editor")
+                .commit();
+    }
+
     // closes the task page or the Focus setup page
     public void closeEditor() {
         getSupportFragmentManager().popBackStack();

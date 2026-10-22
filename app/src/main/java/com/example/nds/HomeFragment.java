@@ -68,6 +68,10 @@ public class HomeFragment extends Fragment {
                 requireContext(), u, UsageRepository.opensFor(lastSnap, u.pkg)));
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
         list.setAdapter(adapter);
+
+        // tapping Today's balance lists every app used today
+        v.findViewById(R.id.balanceCard).setOnClickListener(
+                b -> ((MainActivity) requireActivity()).openUsedToday());
         return v;
     }
 
