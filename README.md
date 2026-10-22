@@ -27,7 +27,9 @@ We don't even remember what was the first reel we saw or any other content we've
 4. Helps us to be more Productive
 5. For students more time to study
 
-   How to Install Play Store > account settings > Play protect > settings > turn off both options
+This app doesn't collect any of our data it's fully Private and Doesn't require any Internet connection, So no Worries
+
+How to Install Play Store > account settings > Play protect > settings > turn off both options
    
 Step -1:
 
