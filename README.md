@@ -12,15 +12,14 @@ We don't even remember what was the first reel we saw or any other content we've
 
 &#x20;The features are Listed below:
 
-1.**Open Source**
-2. Selection of apps
-3. Strict Timers, setting up a timer up to 1 hour a day (Maximum is 1 hour, only for Instagram) no opening after the completion of app's Time limit
-4. No reset or removal option for the Limit after the completion
-5. Study Time table for Students with Notification
-6. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t is present
-7. App History
-8. Task Scheduling
-9. Focus Mode
+1. Selection of apps
+2. Strict Timers, setting up a timer up to 1 hour a day (Maximum is 1 hour, only for Instagram) no opening after the completion of app's Time limit
+3. No reset or removal option for the Limit after the completion
+4. Study Time table for Students with Notification
+5. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t is present
+6. App History
+7. Task Scheduling
+8. Focus Mode with timer and Stop watch
 
 **Benefits of this app:**
 
@@ -30,9 +29,11 @@ We don't even remember what was the first reel we saw or any other content we've
 4. Helps us to be more Productive
 5. For students more time to study
 
-**This app doesn't collect any of our data it's fully Private and Doesn't require any Internet connection, So no Worries**
+**This app doesn't collect user data unlike other apps, it's fully Private and Doesn't require any Internet connection. So no Worries about Privacy**
 
-**You have to off "Play Protect" because the N.D.S can see your app usage data, so play store restricts the installation**
+**N.D.S is completly FREE for EVERYONE and OPEN SOURCE**
+
+**You have to turn off "Play Protect" because the N.D.S can access your app usage data, so play store restricts the installation**
 
 **How to Turn it off Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
