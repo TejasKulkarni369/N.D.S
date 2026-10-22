@@ -30,8 +30,9 @@ We don't even remember what was the first reel we saw or any other content we've
 5. For students more time to study
 
 **This app doesn't collect any of our data it's fully Private and Doesn't require any Internet connection, So no Worries**
+**You have to it off because it can see your app usage data, so playstore restricts the installation**
 
-**How to Install Play Store > account settings > Play protect > settings > turn off both options. Now you can install it. You have to it off because it can see your app usage data, so playstore restricts the installation**
+**How to Turn it off Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
 Step -1:
 
