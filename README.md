@@ -35,18 +35,18 @@ We don't even remember what was the first reel we saw or any other content we've
 
 **How to Turn it off Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
-Step -1:
+Step -1: account settings
 
 <img width="720" height="112" alt="step 1" src="https://github.com/user-attachments/assets/b883eb35-4375-4a53-9acf-515ebfe862fb" />
 
-Step - 2:
+Step - 2: Play protect
 
 <img width="720" height="1612" alt="step 2" src="https://github.com/user-attachments/assets/2c2f1cb4-89cc-477e-a640-9febb4e48f0a" />
 
-Step - 3:
+Step - 3: Settings
 
 <img width="720" height="615" alt="step 3" src="https://github.com/user-attachments/assets/d06127d2-6640-4e41-bed1-8b628d05e3c5" />
 
-Step - 4:
+Step - 4: Turn off both options
 
 <img width="720" height="723" alt="step 4" src="https://github.com/user-attachments/assets/18277ca3-32dc-422c-9c4d-199f8c6f575a" />
