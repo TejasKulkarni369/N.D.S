@@ -18,12 +18,7 @@ We don't even remember what was the first reel we saw or any other content we've
 3. No reset or removal option for the Limit after the completion
 4. Online Mode, You can make groups and compete with your friends and family
 5. Study Time table for Students with Notification
-6. Scheduling tasks with calendar
-7. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t will be present
-8. Scheduled time limit, Means the app will be unlocked for specific time and the app will be automatically closed after the completion of time
-(Like, only from 6pm to 7pm ).
-
-
+6. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t will be present
 
 **Benefits of this app:**
 
@@ -32,4 +27,18 @@ We don't even remember what was the first reel we saw or any other content we've
 3. Our Brain rewires to do the work which we were procrastinating
 4. Helps us to be more Productive
 5. For students more time to study
+
+   How to Install Play Store > account settings > Play protect > settings > turn off both options
+   
+Step -1:
+<img width="720" height="112" alt="step 1" src="https://github.com/user-attachments/assets/b883eb35-4375-4a53-9acf-515ebfe862fb" />
+
+Step - 2:
+<img width="720" height="1612" alt="step 2" src="https://github.com/user-attachments/assets/2c2f1cb4-89cc-477e-a640-9febb4e48f0a" />
+
+Step - 3:
+<img width="720" height="615" alt="step 3" src="https://github.com/user-attachments/assets/d06127d2-6640-4e41-bed1-8b628d05e3c5" />
+
+Step - 4:
+<img width="720" height="723" alt="step 4" src="https://github.com/user-attachments/assets/18277ca3-32dc-422c-9c4d-199f8c6f575a" />
 
