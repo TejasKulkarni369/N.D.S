@@ -31,7 +31,7 @@ We don't even remember what was the first reel we saw or any other content we've
 
 **This app doesn't collect any of our data it's fully Private and Doesn't require any Internet connection, So no Worries**
 
-**You have to off "Play Protect" because the app can see your app usage data, so play store restricts the installation**
+**You have to off "Play Protect" because the N.D.S can see your app usage data, so play store restricts the installation**
 
 **How to Turn it off Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
