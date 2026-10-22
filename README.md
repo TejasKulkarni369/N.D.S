@@ -15,9 +15,11 @@ We don't even remember what was the first reel we saw or any other content we've
 1. Selection of apps
 2. Strict Timers, setting up a timer up to 1 hour a day (Maximum is 1 hour, only for Instagram) no opening after the completion of app's Time limit
 3. No reset or removal option for the Limit after the completion
-4. Online Mode, You can make groups and compete with your friends and family
-5. Study Time table for Students with Notification
-6. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t will be present
+4. Study Time table for Students with Notification
+5. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t is present
+6. App History
+7. Task Scheduling
+8. Focus Mode
 
 **Benefits of this app:**
 
