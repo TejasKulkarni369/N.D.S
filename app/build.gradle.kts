@@ -7,11 +7,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.Testing.nds"
+        applicationId = "com.Final.NDS"
         minSdk = 29
         targetSdk = 35
         versionCode = 3
-        versionName = "3.1"
+        versionName = "3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
