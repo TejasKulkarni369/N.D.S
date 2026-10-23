@@ -2,6 +2,7 @@
 
 Doom Scrolling means, The compulsive act of continuously scrolling through and consuming negative, upsetting, or depressing news/social media content, even though it causes distress or anxiety.
 
+
 **N.D.S (No Doom Scrolling):**
 
 We know how doom scrolling consumes our time and it provides us nothing except mindlessness, leading to stress and reduced well-being and anxiety.
