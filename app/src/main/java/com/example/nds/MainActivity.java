@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private View navBar, navPill;
     private final TextView[] tabs = new TextView[TAB_COUNT];
     private GestureDetector swipe;
+    private TourView tour;   // the first-run tour (null when it is not showing)
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +113,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onFling(MotionEvent e1, @NonNull MotionEvent e2, float vx, float vy) {
                 if (e1 == null) return false;
-                // no page swipes while the task or Focus page is open
+                // no page swipes during the tour or while a task/Focus page is open
+                if (tour != null) return false;
                 if (getSupportFragmentManager().getBackStackEntryCount() > 0) return false;
                 float dx = e2.getX() - e1.getX();
                 float dy = e2.getY() - e1.getY();
@@ -131,6 +133,10 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (tour != null) {            // Back skips the tour
+                    tour.finish();
+                    return;
+                }
                 FragmentManager fm = getSupportFragmentManager();
                 if (fm.getBackStackEntryCount() > 0) fm.popBackStack();   // close task/Focus page
                 else if (current != 0) select(0);
@@ -164,6 +170,21 @@ public class MainActivity extends AppCompatActivity {
         if (PermissionUtils.hasUsageAccess(this) && PermissionUtils.hasOverlayAccess(this)) {
             ContextCompat.startForegroundService(this, new Intent(this, BlockService.class));
         }
+    }
+
+    // the first time the app is opened after installing: tour of every feature
+    private void maybeStartTour() {
+        if (isFinishing() || tour != null || TourStore.isDone(this)) return;
+        if (FocusStore.isActive(this)) return;
+
+        ViewGroup main = findViewById(R.id.main);
+        tour = new TourView(this, TourView.defaultSteps(), () -> {
+            tour = null;
+            TourStore.markDone(this);
+        });
+        main.addView(tour, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        tour.start();
     }
 
     // "Are you sure you wanna enter Focus mode?"  Yes / No
@@ -216,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
         navBar.setTranslationY(48 * d);
     }
 
-    // glow fades in, then content and nav bar rise
+    // glow fades in, then content and nav bar rise, then (first run only) the tour starts
     private void playEntrance() {
         ViewGroup main = findViewById(R.id.main);
         View glow = main.getChildAt(0);
@@ -237,6 +258,8 @@ public class MainActivity extends AppCompatActivity {
                 .setDuration(650)
                 .setInterpolator(new DecelerateInterpolator(2f))
                 .start();
+
+        navBar.postDelayed(this::maybeStartTour, 1400);
     }
 
     private Fragment fragmentFor(int tab) {
@@ -261,7 +284,7 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
-    // opens the Focus setup page (timer + 5 emergency apps)
+    // opens the Focus setup page (timer + emergency apps)
     public void openFocusSetup() {
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
@@ -281,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
-    // closes the task page or the Focus setup page
+    // closes the task page, the Focus setup page or the used-today page
     public void closeEditor() {
         getSupportFragmentManager().popBackStack();
     }
