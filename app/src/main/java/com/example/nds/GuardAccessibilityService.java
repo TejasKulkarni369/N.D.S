@@ -24,6 +24,13 @@ public class GuardAccessibilityService extends AccessibilityService {
             "DrawOverlay", "Overlay", "NotificationAccess", "NotificationListener"
     };
 
+    // "Force stop" is given up after this long
+    private static final long STOP_TIMEOUT_MS = 5000;
+
+    public interface Done {
+        void onDone(boolean pressed);   // pressed = Force stop (or an already stopped app) worked
+    }
+
     private static GuardAccessibilityService instance;
 
     public static boolean isRunning() {
@@ -31,9 +38,14 @@ public class GuardAccessibilityService extends AccessibilityService {
     }
 
     // BlockService calls this right before it opens a locked app's info page
-    public static void expectForceStop(String pkg) {
+    // (under its own cover screen)
+    public static void expectForceStop(String pkg, Done done) {
         GuardAccessibilityService s = instance;
-        if (s != null) s.beginForceStop(pkg);
+        if (s != null) {
+            s.beginForceStop(pkg, done);
+        } else if (done != null) {
+            done.onDone(false);
+        }
     }
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -42,6 +54,7 @@ public class GuardAccessibilityService extends AccessibilityService {
 
     // "Force stop" automation
     private String stopPkg = null;
+    private Done stopDone = null;
     private int stopStage = 0;          // 1 = looking for "Force stop", 2 = looking for the OK button
     private long stopStarted = 0;
     private final Runnable stopStep = this::forceStopStep;
@@ -127,28 +140,32 @@ public class GuardAccessibilityService extends AccessibilityService {
 
     // ---------------------------------------------------------------------
     // Force stop: presses "Force stop" and "OK" on the app info page that
-    // BlockService just opened, then goes back to the home screen.
+    // BlockService opened under its cover screen, then reports back.
     // ---------------------------------------------------------------------
 
-    private void beginForceStop(String pkg) {
+    private void beginForceStop(String pkg, Done done) {
         stopPkg = pkg;
+        stopDone = done;
         stopStage = 1;
         stopStarted = System.currentTimeMillis();
         handler.removeCallbacks(stopStep);
-        handler.postDelayed(stopStep, 700);
+        handler.postDelayed(stopStep, 500);
     }
 
-    private void endForceStop() {
+    private void endForceStop(boolean pressed) {
+        Done d = stopDone;
+        stopDone = null;
         stopPkg = null;
         stopStage = 0;
         handler.removeCallbacks(stopStep);
         performGlobalAction(GLOBAL_ACTION_HOME);
+        if (d != null) d.onDone(pressed);
     }
 
     private void forceStopStep() {
         if (stopPkg == null) return;
-        if (System.currentTimeMillis() - stopStarted > 9000) {   // give up
-            endForceStop();
+        if (System.currentTimeMillis() - stopStarted > STOP_TIMEOUT_MS) {   // give up
+            endForceStop(false);
             return;
         }
 
@@ -161,18 +178,18 @@ public class GuardAccessibilityService extends AccessibilityService {
                         btn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                         stopStage = 2;
                     } else {
-                        endForceStop();     // greyed out: the app is not running
+                        endForceStop(true);     // greyed out: the app is not running
                         return;
                     }
                 }
             } else if (stopStage == 2) {
                 if (clickConfirm(root)) {
-                    endForceStop();
+                    endForceStop(true);
                     return;
                 }
             }
         }
-        handler.postDelayed(stopStep, 300);
+        handler.postDelayed(stopStep, 200);
     }
 
     // the "Force stop" button, found by the text Settings itself uses (every language)

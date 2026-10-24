@@ -45,7 +45,9 @@ public class BlockService extends Service {
     private static final long FAST_MS = 150;              // how often a new open is looked for
     private static final long WARNING_TIMEOUT_MS = 20000; // unanswered warning counts as "No"
     private static final long AFTER_NO_MS = 3000;         // time left to close after "No"
-    private static final long FORCE_STOP_GAP_MS = 60000;  // "Force stop" for one app at most once a minute
+    private static final long FORCE_STOP_GAP_MS = 8000;   // "Force stop" for one app at most every 8 s
+    private static final long CLOSE_SAFETY_MS = 7000;     // the cover never stays longer than this
+    private static final long BROKEN_PAUSE_MS = 10 * 60000L; // after a failed Force stop, skip it for 10 min
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WindowManager wm;
@@ -54,13 +56,16 @@ public class BlockService extends Service {
     private long holdUntil = 0;
     private long closeAt = 0;            // when "Time's up" will close the app
     private boolean warningOpen = false; // the "Are you sure?" card is showing
+    private boolean closing = false;     // Force stop is running under the cover screen
+    private String closingPkg = null;
 
     // apps whose limit is used up right now (refreshed once per second)
     private final Map<String, AppUsage> locked = new HashMap<>();
 
     // "Force stop" bookkeeping
     private final Map<String, Long> forceStopAt = new HashMap<>();
-    private long forceStopUntil = 0;     // Settings may be on the screen until then
+    private long forceStopUntil = 0;          // Settings may be on the screen until then
+    private long forceStopBrokenUntil = 0;    // Force stop did not work on this phone: skip it for a while
 
     // Focus mode
     private Set<String> focusAllowed = new HashSet<>();   // empty = Focus is off
@@ -85,10 +90,11 @@ public class BlockService extends Service {
 
     private final Runnable autoClose = this::closeBlockedApp;
     private final Runnable warnTimeout = () -> hideWarning(true);
+    private final Runnable closeSafety = () -> finishClose(closingPkg);
 
-    // "Time's up" stays longer when the person still has the emergency bypass to think about
+    // "Time's up" stays longer while the emergency bypass is still there to think about
     private long autoCloseMs() {
-        return BypassStore.available(this) ? 6000 : 2000;
+        return BypassStore.available(this) ? 6000 : 1200;
     }
 
     private void scheduleClose(long ms) {
@@ -180,13 +186,18 @@ public class BlockService extends Service {
 
         // during Focus anything that is not allowed gets the Focus screen
         if (focusViolation(s.foreground)) {
-            if (overlay != null) hideOverlay(false);
+            if (overlay != null && !closing) hideOverlay(false);
             enforceFocus(s.foreground);
             return;
         }
 
         AppUsage hit = (s.foreground == null) ? null : locked.get(s.foreground);
         long now = System.currentTimeMillis();
+
+        if (closing) {
+            // Force stop is running under the cover screen: just wait for it
+            return;
+        }
 
         if (hit != null) {
             if (overlay == null) {
@@ -229,7 +240,7 @@ public class BlockService extends Service {
     // true if this app must not be on the screen during Focus
     private boolean focusViolation(String fg) {
         if (fg == null || focusAllowed.isEmpty() || focusAllowed.contains(fg)) return false;
-        // Settings may show for a moment while N.D.S presses "Force stop"
+        // Settings may show (under our cover) while N.D.S presses "Force stop"
         return !(fg.equals("com.android.settings")
                 && System.currentTimeMillis() < forceStopUntil);
     }
@@ -289,6 +300,7 @@ public class BlockService extends Service {
 
         overlay = v;
         warningOpen = false;
+        closing = false;
         setOverlayTexts(u);
         setCountdown(autoCloseMs() / 1000);
 
@@ -354,6 +366,17 @@ public class BlockService extends Service {
                 .setText("Closing in " + seconds + "s");
     }
 
+    // the cover screen while Force stop runs: no buttons, just "Closing <app>…"
+    private void showClosingState(String pkg) {
+        if (overlay == null) return;
+        overlay.findViewById(R.id.overlayHome).setVisibility(View.GONE);
+        overlay.findViewById(R.id.overlayBypass).setVisibility(View.GONE);
+        overlay.findViewById(R.id.overlayWarning).setVisibility(View.GONE);
+        blurContent(false);
+        ((TextView) overlay.findViewById(R.id.overlayCountdown))
+                .setText("Closing " + UsageRepository.labelFor(this, pkg) + "…");
+    }
+
     // blur (Android 12+) or clear the Time's up card behind the warning
     private void blurContent(boolean on) {
         if (overlay == null || Build.VERSION.SDK_INT < 31) return;
@@ -365,7 +388,7 @@ public class BlockService extends Service {
 
     // "Are you sure this is an emergency situation to use Bypass?"
     private void showWarning() {
-        if (overlay == null) return;
+        if (overlay == null || closing) return;
         warningOpen = true;
         handler.removeCallbacks(autoClose);          // pause: do not close the app under the card
         handler.removeCallbacks(warnTimeout);
@@ -377,7 +400,7 @@ public class BlockService extends Service {
     private void hideWarning(boolean resumeClose) {
         warningOpen = false;
         handler.removeCallbacks(warnTimeout);
-        if (overlay == null) return;
+        if (overlay == null || closing) return;
         overlay.findViewById(R.id.overlayWarning).setVisibility(View.GONE);
         blurContent(false);
         if (resumeClose) scheduleClose(AFTER_NO_MS);
@@ -385,7 +408,7 @@ public class BlockService extends Service {
 
     // "Yes, Bypass": grant today's one bypass to the app on the screen
     private void useBypass() {
-        if (overlay == null || overlayPkg == null) return;
+        if (overlay == null || overlayPkg == null || closing) return;
         String pkg = overlayPkg;
         String name = UsageRepository.labelFor(this, pkg);
 
@@ -400,7 +423,9 @@ public class BlockService extends Service {
     private void hideOverlay(boolean kill) {
         handler.removeCallbacks(autoClose);
         handler.removeCallbacks(warnTimeout);
+        handler.removeCallbacks(closeSafety);
         warningOpen = false;
+        closing = false;
         if (overlay == null) return;
 
         final String pkg = overlayPkg;
@@ -412,9 +437,8 @@ public class BlockService extends Service {
         overlayPkg = null;
 
         if (kill && pkg != null) {
-            // the app is in the background now: close it hard
+            // the app is in the background now: close its processes
             handler.postDelayed(() -> killNow(pkg), 1000);
-            handler.postDelayed(() -> forceStop(pkg), 2200);
         }
     }
 
@@ -430,36 +454,72 @@ public class BlockService extends Service {
         handler.postDelayed(() -> killApp(pkg), 2500);
     }
 
-    // open the app's info page; the Accessibility service presses "Force stop" and "OK"
-    private void forceStop(String pkg) {
-        if (pkg == null || pkg.equals(getPackageName())) return;
-        if (overlay != null) return;                          // another Time's up is on the screen
-        if (!GuardAccessibilityService.isRunning()) return;   // needs Accessibility
+    private void goHome() {
+        try {
+            Intent h = new Intent(Intent.ACTION_MAIN);
+            h.addCategory(Intent.CATEGORY_HOME);
+            h.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(h);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private boolean canForceStop(String pkg) {
+        if (pkg == null || pkg.equals(getPackageName())) return false;
+        if (!GuardAccessibilityService.isRunning()) return false;   // needs Accessibility
+        long now = System.currentTimeMillis();
+        if (now < forceStopBrokenUntil) return false;               // did not work on this phone
+        Long last = forceStopAt.get(pkg);
+        return last == null || now - last >= FORCE_STOP_GAP_MS;
+    }
+
+    // closes the blocked app for good
+    private void closeBlockedApp() {
+        if (overlay == null || closing) return;
+        final String pkg = overlayPkg;
+
+        // simple way (no Accessibility): home screen + close the background processes
+        if (!canForceStop(pkg)) {
+            holdUntil = System.currentTimeMillis() + 800;
+            hideOverlay(true);
+            goHome();
+            return;
+        }
+
+        // Force stop, hidden under our own cover screen: Settings is never visible
+        closing = true;
+        closingPkg = pkg;
+        handler.removeCallbacks(autoClose);
+        handler.removeCallbacks(warnTimeout);
+        warningOpen = false;
+        showClosingState(pkg);
 
         long now = System.currentTimeMillis();
-        Long last = forceStopAt.get(pkg);
-        if (last != null && now - last < FORCE_STOP_GAP_MS) return;
         forceStopAt.put(pkg, now);
-        forceStopUntil = now + 10000;
+        forceStopUntil = now + 8000;
+        handler.postDelayed(closeSafety, CLOSE_SAFETY_MS);   // never stay here forever
 
-        GuardAccessibilityService.expectForceStop(pkg);
+        GuardAccessibilityService.expectForceStop(pkg, pressed -> {
+            if (!pressed) forceStopBrokenUntil = System.currentTimeMillis() + BROKEN_PAUSE_MS;
+            finishClose(pkg);
+        });
+
         try {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:" + pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            finishClose(pkg);
         }
     }
 
-    private void closeBlockedApp() {
-        if (overlay == null) return;
+    // Force stop is done (or gave up): lift the cover, go home
+    private void finishClose(String pkg) {
+        if (!closing) return;
         holdUntil = System.currentTimeMillis() + 800;
-        hideOverlay(true);
-
-        Intent h = new Intent(Intent.ACTION_MAIN);
-        h.addCategory(Intent.CATEGORY_HOME);
-        h.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(h);
+        hideOverlay(false);          // also resets "closing"
+        goHome();
+        if (pkg != null) killNow(pkg);
     }
 }
