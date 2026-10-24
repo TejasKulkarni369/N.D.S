@@ -1,11 +1,16 @@
 package com.example.nds;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuardAccessibilityService extends AccessibilityService {
 
@@ -19,9 +24,45 @@ public class GuardAccessibilityService extends AccessibilityService {
             "DrawOverlay", "Overlay", "NotificationAccess", "NotificationListener"
     };
 
+    private static GuardAccessibilityService instance;
+
+    public static boolean isRunning() {
+        return instance != null;
+    }
+
+    // BlockService calls this right before it opens a locked app's info page
+    public static void expectForceStop(String pkg) {
+        GuardAccessibilityService s = instance;
+        if (s != null) s.beginForceStop(pkg);
+    }
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean watching = false;   // the current screen looks sensitive
     private final Runnable check = this::checkScreen;
+
+    // "Force stop" automation
+    private String stopPkg = null;
+    private int stopStage = 0;          // 1 = looking for "Force stop", 2 = looking for the OK button
+    private long stopStarted = 0;
+    private final Runnable stopStep = this::forceStopStep;
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        instance = this;
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        instance = null;
+        return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onDestroy() {
+        instance = null;
+        super.onDestroy();
+    }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -69,6 +110,9 @@ public class GuardAccessibilityService extends AccessibilityService {
         performGlobalAction(GLOBAL_ACTION_HOME);
         Toast.makeText(this, "N.D.S is protected until tomorrow", Toast.LENGTH_SHORT).show();
     }
+
+    // true if any Distracting app used PROTECT_PERCENT or more of its limit today,
+    // if today's emergency bypass was used, or while Focus mode is on
     private boolean isProtectedNow() {
         if (FocusStore.isActive(this)) return true;
         if (BypassStore.usedToday(this)) return true;
@@ -79,6 +123,104 @@ public class GuardAccessibilityService extends AccessibilityService {
             if (u.usedMs * 100 >= limitMs * PROTECT_PERCENT) return true;
         }
         return false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Force stop: presses "Force stop" and "OK" on the app info page that
+    // BlockService just opened, then goes back to the home screen.
+    // ---------------------------------------------------------------------
+
+    private void beginForceStop(String pkg) {
+        stopPkg = pkg;
+        stopStage = 1;
+        stopStarted = System.currentTimeMillis();
+        handler.removeCallbacks(stopStep);
+        handler.postDelayed(stopStep, 700);
+    }
+
+    private void endForceStop() {
+        stopPkg = null;
+        stopStage = 0;
+        handler.removeCallbacks(stopStep);
+        performGlobalAction(GLOBAL_ACTION_HOME);
+    }
+
+    private void forceStopStep() {
+        if (stopPkg == null) return;
+        if (System.currentTimeMillis() - stopStarted > 9000) {   // give up
+            endForceStop();
+            return;
+        }
+
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root != null) {
+            if (stopStage == 1) {
+                AccessibilityNodeInfo btn = findForceStop(root);
+                if (btn != null) {
+                    if (btn.isEnabled()) {
+                        btn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        stopStage = 2;
+                    } else {
+                        endForceStop();     // greyed out: the app is not running
+                        return;
+                    }
+                }
+            } else if (stopStage == 2) {
+                if (clickConfirm(root)) {
+                    endForceStop();
+                    return;
+                }
+            }
+        }
+        handler.postDelayed(stopStep, 300);
+    }
+
+    // the "Force stop" button, found by the text Settings itself uses (every language)
+    private AccessibilityNodeInfo findForceStop(AccessibilityNodeInfo root) {
+        for (String label : forceStopLabels()) {
+            List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText(label);
+            for (AccessibilityNodeInfo n : nodes) {
+                AccessibilityNodeInfo c = n;
+                while (c != null && !c.isClickable()) c = c.getParent();
+                if (c != null) return c;
+            }
+        }
+        return null;
+    }
+
+    // the OK button of the "Force stop?" question
+    private boolean clickConfirm(AccessibilityNodeInfo root) {
+        List<AccessibilityNodeInfo> byId = root.findAccessibilityNodeInfosByViewId("android:id/button1");
+        if (!byId.isEmpty()) {
+            byId.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            return true;
+        }
+
+        List<String> labels = new ArrayList<>(forceStopLabels());
+        labels.add(getString(android.R.string.ok));
+        for (String label : labels) {
+            for (AccessibilityNodeInfo n : root.findAccessibilityNodeInfosByText(label)) {
+                boolean isButton = n.getClassName() != null
+                        && n.getClassName().toString().endsWith("Button");
+                if (isButton && n.isClickable()) {
+                    n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<String> forceStopLabels() {
+        List<String> out = new ArrayList<>();
+        try {
+            Resources r = getPackageManager().getResourcesForApplication("com.android.settings");
+            int id = r.getIdentifier("force_stop", "string", "com.android.settings");
+            if (id != 0) out.add(r.getString(id));
+        } catch (Exception ignored) {
+        }
+        if (!out.contains("Force stop")) out.add("Force stop");
+        return out;
     }
 
     @Override

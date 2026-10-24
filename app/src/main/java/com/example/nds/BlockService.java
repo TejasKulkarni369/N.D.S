@@ -16,10 +16,12 @@ import android.graphics.PixelFormat;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,6 +45,7 @@ public class BlockService extends Service {
     private static final long FAST_MS = 150;              // how often a new open is looked for
     private static final long WARNING_TIMEOUT_MS = 20000; // unanswered warning counts as "No"
     private static final long AFTER_NO_MS = 3000;         // time left to close after "No"
+    private static final long FORCE_STOP_GAP_MS = 60000;  // "Force stop" for one app at most once a minute
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WindowManager wm;
@@ -54,6 +57,10 @@ public class BlockService extends Service {
 
     // apps whose limit is used up right now (refreshed once per second)
     private final Map<String, AppUsage> locked = new HashMap<>();
+
+    // "Force stop" bookkeeping
+    private final Map<String, Long> forceStopAt = new HashMap<>();
+    private long forceStopUntil = 0;     // Settings may be on the screen until then
 
     // Focus mode
     private Set<String> focusAllowed = new HashSet<>();   // empty = Focus is off
@@ -131,7 +138,7 @@ public class BlockService extends Service {
         Notification n = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_lock)
                 .setContentTitle("N.D.S")
-                .setContentText("is Watching Your Limits")
+                .setContentText("Be in Your Limits")
                 .setContentIntent(pi)
                 .setOngoing(true)
                 .build();
@@ -154,7 +161,7 @@ public class BlockService extends Service {
             focusAllowed = FocusStore.allowed(this);
         } else {
             if (focusWas) {
-                StopwatchStore.reset(this);
+                StopwatchStore.reset(this);   // the next Focus starts with a fresh stopwatch
                 Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
             }
             focusAllowed = new HashSet<>();
@@ -166,8 +173,13 @@ public class BlockService extends Service {
             if (u.usedMin >= u.limitMin) locked.put(u.pkg, u);
         }
 
+        // a locked app must not stay alive in the background: close it every second
+        for (String pkg : locked.keySet()) {
+            if (!pkg.equals(s.foreground)) killApp(pkg);
+        }
+
         // during Focus anything that is not allowed gets the Focus screen
-        if (focus && s.foreground != null && !focusAllowed.contains(s.foreground)) {
+        if (focusViolation(s.foreground)) {
             if (overlay != null) hideOverlay(false);
             enforceFocus(s.foreground);
             return;
@@ -199,7 +211,7 @@ public class BlockService extends Service {
         // Focus mode: only allowed apps may be on the screen
         if (!focusAllowed.isEmpty()) {
             String fg = recentForeground(5000);
-            if (fg != null && !focusAllowed.contains(fg)) {
+            if (focusViolation(fg)) {
                 enforceFocus(fg);
                 return;
             }
@@ -212,6 +224,14 @@ public class BlockService extends Service {
         String fg = recentForeground(5000);
         AppUsage u = (fg == null) ? null : locked.get(fg);
         if (u != null) showOverlay(u);
+    }
+
+    // true if this app must not be on the screen during Focus
+    private boolean focusViolation(String fg) {
+        if (fg == null || focusAllowed.isEmpty() || focusAllowed.contains(fg)) return false;
+        // Settings may show for a moment while N.D.S presses "Force stop"
+        return !(fg.equals("com.android.settings")
+                && System.currentTimeMillis() < forceStopUntil);
     }
 
     // bring the Focus screen to the front and close the app that should not be there
@@ -231,7 +251,7 @@ public class BlockService extends Service {
 
         // never close the launcher or the status bar
         if (!pkg.equals(SystemApps.home(this)) && !pkg.startsWith("com.android.systemui")) {
-            handler.postDelayed(() -> killApp(pkg), 1200);
+            handler.postDelayed(() -> killNow(pkg), 1000);
         }
     }
 
@@ -392,14 +412,44 @@ public class BlockService extends Service {
         overlayPkg = null;
 
         if (kill && pkg != null) {
-            // the app is in the background now, so Android allows closing it
-            handler.postDelayed(() -> killApp(pkg), 1200);
+            // the app is in the background now: close it hard
+            handler.postDelayed(() -> killNow(pkg), 1000);
+            handler.postDelayed(() -> forceStop(pkg), 2200);
         }
     }
 
     private void killApp(String pkg) {
         ActivityManager am = getSystemService(ActivityManager.class);
         if (am != null) am.killBackgroundProcesses(pkg);
+    }
+
+    // close the background processes now, and again a little later
+    private void killNow(String pkg) {
+        killApp(pkg);
+        handler.postDelayed(() -> killApp(pkg), 800);
+        handler.postDelayed(() -> killApp(pkg), 2500);
+    }
+
+    // open the app's info page; the Accessibility service presses "Force stop" and "OK"
+    private void forceStop(String pkg) {
+        if (pkg == null || pkg.equals(getPackageName())) return;
+        if (overlay != null) return;                          // another Time's up is on the screen
+        if (!GuardAccessibilityService.isRunning()) return;   // needs Accessibility
+
+        long now = System.currentTimeMillis();
+        Long last = forceStopAt.get(pkg);
+        if (last != null && now - last < FORCE_STOP_GAP_MS) return;
+        forceStopAt.put(pkg, now);
+        forceStopUntil = now + 10000;
+
+        GuardAccessibilityService.expectForceStop(pkg);
+        try {
+            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + pkg));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception ignored) {
+        }
     }
 
     private void closeBlockedApp() {
