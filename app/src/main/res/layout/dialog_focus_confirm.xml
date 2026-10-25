@@ -39,8 +39,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:gravity="center"
-        android:text="Your phone will be blocked except Phone, Contacts and up to 0 TO 5 emergency apps."
+        android:text="Your phone will be blocked except Phone, Contacts and up to 5 emergency apps."
         android:textColor="@color/text_dim"
+        android:textSize="12sp" />
+
+    <com.example.nds.ExitsLeftView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
         android:textSize="12sp" />
 
     <LinearLayout

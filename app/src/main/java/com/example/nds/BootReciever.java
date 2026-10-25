@@ -12,6 +12,7 @@ public class BootReciever extends BroadcastReceiver {
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) return;
 
         TaskScheduler.rescheduleAll(ctx);
+        StudyScheduler.rescheduleAll(ctx);
 
         if (PermissionUtils.hasUsageAccess(ctx) && PermissionUtils.hasOverlayAccess(ctx)) {
             try {

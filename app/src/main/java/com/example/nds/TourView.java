@@ -236,6 +236,16 @@ public class TourView extends FrameLayout {
                         + "1 to 5 emergency apps. Set a timer, and use the stopwatch to time "
                         + "your work. It only opens with a tap, never with a swipe."));
 
+        s.add(new Step(0, false, "Emergency Exit",
+                "Inside Focus mode you can leave early in a real emergency. You get 3 "
+                        + "emergency exits a week, and the number left shows on Home and "
+                        + "before you start Focus."));
+
+        s.add(new Step(R.id.navTasks, false, "Study timetable",
+                "Open Tasks and tap Study timetable to plan your weekly study sessions. "
+                        + "N.D.S notifies you 5 minutes before, at the start and at the end "
+                        + "of each session."));
+
         s.add(new Step(0, false, "When time is up",
                 "A locked app shows a grey logo with a red lock. If you open it, the Time's up "
                         + "screen appears and the app closes. In a real emergency you get one "

@@ -119,6 +119,15 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <com.example.nds.ExitsLeftView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/glass_card"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textSize="13sp" />
+
             <!-- Today's balance: now above the app limits -->
             <LinearLayout
                 android:id="@+id/balanceCard"

@@ -168,8 +168,9 @@ public class BlockService extends Service {
         } else {
             if (focusWas) {
                 StopwatchStore.reset(this);   // the next Focus starts with a fresh stopwatch
+                if (!FocusStore.consumeExitFlag(this)) {
                 Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
-            }
+            }}
             focusAllowed = new HashSet<>();
         }
         focusWas = focus;

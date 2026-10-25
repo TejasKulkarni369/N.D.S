@@ -40,7 +40,7 @@ public class TasksFragment extends Fragment {
                 Context ctx = requireContext();
                 TaskStore.setDone(ctx, t.id, !t.done);
                 if (t.done) {
-                    // undo "done": set the reminder again
+// undo "done": set the reminder again
                     TaskScheduler.schedule(ctx, t);
                 } else {
                     TaskScheduler.cancel(ctx, t);
@@ -69,7 +69,7 @@ public class TasksFragment extends Fragment {
                     if (!d) allDone = false;
                 }
 
-                // all checkpoints ticked = the task is done
+// all checkpoints ticked = the task is done
                 Task updated = new Task(t.id, t.title, t.description, t.timeMs, allDone, checks);
                 TaskStore.upsert(ctx, updated);
                 TaskScheduler.cancel(ctx, updated);
@@ -84,9 +84,13 @@ public class TasksFragment extends Fragment {
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
         list.setAdapter(adapter);
 
-        // "Add task" opens the separate task page
+// "Add task" opens the separate task page
         v.findViewById(R.id.addTaskBtn).setOnClickListener(
                 b -> ((MainActivity) requireActivity()).openTaskEditor(0));
+
+// the Study timetable section
+        v.findViewById(R.id.studyCard).setOnClickListener(
+                b -> ((MainActivity) requireActivity()).openStudy());
         return v;
     }
 
@@ -102,3 +106,4 @@ public class TasksFragment extends Fragment {
         empty.setVisibility(tasks.isEmpty() ? View.VISIBLE : View.GONE);
     }
 }
+

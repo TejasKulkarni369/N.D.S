@@ -304,6 +304,26 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
+    // opens the study timetable
+    public void openStudy() {
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
+                        R.anim.slide_in_left, R.anim.slide_out_right)
+                .replace(R.id.fragmentContainer, new StudyFragment())
+                .addToBackStack("editor")
+                .commit();
+    }
+
+    // opens one study session to add or edit (id 0 = new session)
+    public void openStudyEditor(long id) {
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
+                        R.anim.slide_in_left, R.anim.slide_out_right)
+                .replace(R.id.fragmentContainer, StudyEditFragment.newInstance(id))
+                .addToBackStack("editor")
+                .commit();
+    }
+
     // closes the task page, the Focus setup page or the used-today page
     public void closeEditor() {
         getSupportFragmentManager().popBackStack();

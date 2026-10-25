@@ -1,12 +1,16 @@
 package com.example.nds;
 
+import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,6 +18,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -30,7 +35,7 @@ public class FocusActivity extends AppCompatActivity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private GlowRingView ring;
-    private TextView timeView, swTime, swToggle, swReset;
+    private TextView timeView, swTime, swToggle, swReset, exitBtn;
     private boolean done = false;
 
     // the Focus countdown, once per second
@@ -100,6 +105,22 @@ public class FocusActivity extends AppCompatActivity {
         grid.setLayoutManager(new GridLayoutManager(this, 3));
         grid.setAdapter(new FocusAppAdapter(buildApps(), this::launch));
 
+        // the Emergency Exit button, under the allowed apps
+        float d = getResources().getDisplayMetrics().density;
+        exitBtn = new TextView(this);
+        exitBtn.setBackgroundResource(R.drawable.glass_card);
+        exitBtn.setGravity(Gravity.CENTER);
+        exitBtn.setTextSize(14);
+        exitBtn.setTextColor(ContextCompat.getColor(this, R.color.locked));
+        int pad = (int) (14 * d);
+        exitBtn.setPadding(pad, pad, pad, pad);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = (int) (12 * d);
+        ((ViewGroup) grid.getParent()).addView(exitBtn, lp);
+        exitBtn.setOnClickListener(v -> askExit());
+        refreshExitLabel();
+
         // the back button does nothing while Focus is on
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -108,7 +129,6 @@ public class FocusActivity extends AppCompatActivity {
             }
         });
 
-        // a new Focus session: stopwatch starts from zero, then the intro plays
         // a new Focus session: the intro plays (the stopwatch keeps what it already counted)
         if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null) {
             content.setAlpha(0f);
@@ -117,6 +137,58 @@ public class FocusActivity extends AppCompatActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             intro.start(() -> content.animate().alpha(1f).setDuration(600).start());
         }
+    }
+
+    private void refreshExitLabel() {
+        int left = ExitStore.left(this);
+        exitBtn.setText(left > 0
+                ? "Emergency Exit · " + left + " left this week"
+                : "Emergency Exit · none left this week");
+        exitBtn.setAlpha(left > 0 ? 1f : 0.45f);
+    }
+
+    // "Are you sure this is an emergency situation?"  Yes, Exit / No
+    private void askExit() {
+        int left = ExitStore.left(this);
+        if (left <= 0) {
+            Toast.makeText(this, "No emergency exits left. They come back on Monday.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Dialog d = new Dialog(this, R.style.NdsDialog);
+        d.setContentView(R.layout.dialog_focus_exit);
+        ((TextView) d.findViewById(R.id.exitInfo)).setText("You have " + left
+                + " emergency exit" + (left == 1 ? "" : "s")
+                + " left this week. This uses one.");
+        d.findViewById(R.id.exitNo).setOnClickListener(v -> d.dismiss());
+        d.findViewById(R.id.exitYes).setOnClickListener(v -> {
+            d.dismiss();
+            doExit();
+        });
+
+        Window w = d.getWindow();
+        if (w != null) {
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            w.setGravity(Gravity.CENTER);
+            w.setDimAmount(0.3f);
+        }
+        BlurHelper.blurBehind(findViewById(R.id.focusRoot), d);
+        d.show();
+    }
+
+    // end Focus now and use one of this week's exits
+    private void doExit() {
+        ExitStore.use(this);
+        FocusStore.exitNow(this);
+        StopwatchStore.reset(this);
+
+        int left = ExitStore.left(this);
+        Toast.makeText(this, "Focus ended · " + left + " emergency exit"
+                + (left == 1 ? "" : "s") + " left this week", Toast.LENGTH_LONG).show();
+        done = true;
+        finish();
     }
 
     // Phone, Contacts, then the emergency apps (1 to 5)
@@ -162,7 +234,7 @@ public class FocusActivity extends AppCompatActivity {
     private void finishFocus() {
         if (done) return;
         done = true;
-        StopwatchStore.reset(this);
+        StopwatchStore.reset(this);   // the next Focus starts with a fresh stopwatch
         Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
         finish();
     }
@@ -171,6 +243,7 @@ public class FocusActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (ring != null) {
+            refreshExitLabel();
             ring.startPulse();
             handler.post(tick);
             handler.post(swTick);

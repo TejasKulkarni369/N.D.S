@@ -168,6 +168,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".StudyReminderReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReciever"
             android:exported="true">
             <intent-filter>

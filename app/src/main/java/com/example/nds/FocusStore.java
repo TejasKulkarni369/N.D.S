@@ -40,6 +40,18 @@ public class FocusStore {
         return Math.max(1, sp(c).getLong("endAt", 0) - sp(c).getLong("startAt", 0));
     }
 
+    // ends Focus right now (used by the Emergency Exit)
+    public static void exitNow(Context c) {
+        sp(c).edit().putLong("endAt", 0).putBoolean("exited", true).apply();
+    }
+
+    // true once after an Emergency Exit, so "Focus complete" is not shown
+    public static boolean consumeExitFlag(Context c) {
+        boolean exited = sp(c).getBoolean("exited", false);
+        if (exited) sp(c).edit().putBoolean("exited", false).apply();
+        return exited;
+    }
+
     // the 5 emergency apps
     public static List<String> apps(Context c) {
         String s = sp(c).getString("apps", "");
