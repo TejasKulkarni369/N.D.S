@@ -35,10 +35,9 @@ We don't even remember what was the first reel we saw or any other content we've
 
 **N.D.S is completely FREE for EVERYONE and fully OPEN SOURCE**
 
-**N.D.S requires access to your app usage data to enable its core features. Google Play Protect may restrict installation due to these permissions.
-**
+**N.D.S requires access to your app usage data to enable its core features. Google Play Protect may restrict installation due to these permissions.**
 
-**How to turn off Play Protect, Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
+**Steps to turn off Play Protect, Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
 Step -1: account settings
 
