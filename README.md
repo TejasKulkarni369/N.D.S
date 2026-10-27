@@ -16,7 +16,7 @@ We don't even remember what was the first reel we saw or any other content we've
 2. Strict Timers, setting up a timer up to 1 hour a day (Maximum is 1 hour, only for Instagram) no opening after the completion of app's Time limit
 3. No reset or removal option for the Limit after the completion
 4. Study Time table for Students with Notification
-5. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh\*t is present
+5. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh*t is present
 6. App History
 7. Scheduling tasks with calendar
 8. Focus Mode with timer and Stop watch
@@ -29,13 +29,15 @@ We don't even remember what was the first reel we saw or any other content we've
 2. Controlled Phone Addiction
 3. Our Brain rewires to do the work which we were procrastinating
 4. Helps us to be more Productive
-5. For students more time to study
+5. For students, more time to study
 
-**This app doesn't collect user data unlike other apps, it's fully Private and Doesn't require any Internet connection. So no Worries about Privacy**
+**Unlike other apps, this app does not collect user data. It operates entirely offline, requires no internet connection, and keeps your data private and secure.
+**
 
-**N.D.S is completly FREE for EVERYONE and OPEN SOURCE**
+**N.D.S is completely FREE for EVERYONE and fully OPEN SOURCE**
 
-**You have to turn off "Play Protect" because the N.D.S can access your app usage data, so play store restricts the installation**
+**N.D.S requires access to your app usage data to enable its core features. Google Play Protect may restrict installation due to these permissions.
+**
 
 **How to turn off Play Protect, Play Store > account settings > Play protect > settings > turn off both options. Now you can install it.**
    
