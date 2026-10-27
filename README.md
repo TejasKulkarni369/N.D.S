@@ -31,8 +31,7 @@ We don't even remember what was the first reel we saw or any other content we've
 4. Helps us to be more Productive
 5. For students, more time to study
 
-**Unlike other apps, this app does not collect user data. It operates entirely offline, requires no internet connection, and keeps your data private and secure.
-**
+**Unlike other apps, this app does not collect user data. It operates entirely offline, requires no internet connection, and keeps your data private and secure.**
 
 **N.D.S is completely FREE for EVERYONE and fully OPEN SOURCE**
 
