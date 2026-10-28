@@ -87,12 +87,9 @@ public class TasksFragment extends Fragment {
 // "Add task" opens the separate task page
         v.findViewById(R.id.addTaskBtn).setOnClickListener(
                 b -> ((MainActivity) requireActivity()).openTaskEditor(0));
-
-// the Study timetable section
-        v.findViewById(R.id.studyCard).setOnClickListener(
-                b -> ((MainActivity) requireActivity()).openStudy());
         return v;
     }
+
 
     @Override
     public void onResume() {
@@ -106,4 +103,3 @@ public class TasksFragment extends Fragment {
         empty.setVisibility(tasks.isEmpty() ? View.VISIBLE : View.GONE);
     }
 }
-

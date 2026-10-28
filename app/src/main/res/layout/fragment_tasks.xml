@@ -34,34 +34,6 @@
         android:textColor="@color/text_dim"
         android:textSize="13sp" />
 
-    <LinearLayout
-        android:id="@+id/studyCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/glass_card"
-        android:clickable="true"
-        android:focusable="true"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Study timetable  ›"
-            android:textColor="@color/orange_soft"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Weekly sessions with reminders 5 minutes before, at the start and at the end."
-            android:textColor="@color/text_dim"
-            android:textSize="12sp" />
-    </LinearLayout>
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

@@ -219,9 +219,9 @@ public class TourView extends FrameLayout {
                 "Apps you mark as Distracting appear here with a limit bar. Tap one for its "
                         + "details: Opened, Notifications, Screen time and a 7-day History."));
 
-        s.add(new Step(R.id.navLimits, false, "Limits",
-                "Change each app's limit. Lowering applies now, raising applies tomorrow. "
-                        + "Once a limit is used up, the app is locked until tomorrow."));
+        s.add(new Step(R.id.navApps, false, "Time Table",
+                "Plan your weekly study sessions. N.D.S notifies you 5 minutes before, at "
+                        + "the start and at the end of each session."));
 
         s.add(new Step(R.id.navTasks, false, "Tasks",
                 "Plan your work with a title, a description and checkpoints you can tick. "

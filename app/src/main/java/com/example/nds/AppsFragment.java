@@ -31,6 +31,9 @@ public class AppsFragment extends Fragment {
         if (an instanceof SimpleItemAnimator) {
             ((SimpleItemAnimator) an).setSupportsChangeAnimations(false);
         }
+
+        v.findViewById(R.id.appsBack).setOnClickListener(
+                b -> ((MainActivity) requireActivity()).closeEditor());
         return v;
     }
 

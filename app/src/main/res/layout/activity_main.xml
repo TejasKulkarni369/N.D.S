@@ -80,15 +80,21 @@
                     android:textColor="@color/text_dim"
                     android:textSize="13sp" />
 
+                <!-- the 4th tab: Time Table (id kept as navApps) -->
                 <TextView
                     android:id="@+id/navApps"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:autoSizeMaxTextSize="13sp"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeTextType="uniform"
                     android:gravity="center"
-                    android:text="Apps"
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp" />
+                    android:maxLines="1"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
+                    android:text="Time Table"
+                    android:textColor="@color/text_dim" />
             </LinearLayout>
 
             <ImageView

@@ -8,6 +8,16 @@
     android:paddingEnd="20dp">
 
     <TextView
+        android:id="@+id/appsBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp"
+        android:text="‹  Back"
+        android:textColor="@color/orange_soft"
+        android:textSize="14sp" />
+
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="N.D.S"

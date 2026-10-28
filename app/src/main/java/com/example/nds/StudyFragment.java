@@ -32,8 +32,6 @@ public class StudyFragment extends Fragment {
         empty = v.findViewById(R.id.studyEmpty);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        v.findViewById(R.id.studyBack).setOnClickListener(
-                b -> ((MainActivity) requireActivity()).closeEditor());
         v.findViewById(R.id.studyAdd).setOnClickListener(
                 b -> ((MainActivity) requireActivity()).openStudyEditor(0));
         return v;

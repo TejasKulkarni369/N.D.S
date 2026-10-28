@@ -31,7 +31,7 @@ public class LimitsFragment extends Fragment {
 
         // "Add app" = pick a Distracting app on the Apps page
         v.findViewById(R.id.addAppBtn).setOnClickListener(
-                b -> ((MainActivity) requireActivity()).openTab(3));
+                b -> ((MainActivity) requireActivity()).openApps());
         return v;
     }
 

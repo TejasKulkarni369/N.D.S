@@ -9,16 +9,6 @@
     android:paddingEnd="20dp">
 
     <TextView
-        android:id="@+id/studyBack"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
-        android:text="‹  Back"
-        android:textColor="@color/orange_soft"
-        android:textSize="14sp" />
-
-    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="N.D.S"
@@ -28,7 +18,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Study timetable"
+        android:text="Time Table"
         android:textColor="@color/text"
         android:textSize="30sp"
         android:textStyle="bold" />

@@ -60,7 +60,7 @@ public class StudyReminderReceiver extends BroadcastReceiver {
 
         int code = StudyScheduler.code(id, day, type);
         Intent open = new Intent(ctx, MainActivity.class);
-        open.putExtra("tab", 2);   // opens the Tasks tab
+        open.putExtra("tab", 3);   // opens the Tasks tab
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(ctx, code, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

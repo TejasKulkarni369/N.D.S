@@ -265,13 +265,16 @@ public class MainActivity extends AppCompatActivity {
     private Fragment fragmentFor(int tab) {
         if (tab == 1) return new LimitsFragment();
         if (tab == 2) return new TasksFragment();
-        if (tab == 3) return new AppsFragment();
+        if (tab == 3) return new StudyFragment();
         return new HomeFragment();
     }
 
     // used by the "Add app" button on the Limits page
-    public void openTab(int tab) {
-        select(tab);
+    public void openTab() {
+        select();
+    }
+
+    private void select() {
     }
 
     // opens the separate task page (id 0 = new task)
@@ -320,6 +323,16 @@ public class MainActivity extends AppCompatActivity {
                 .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
                         R.anim.slide_in_left, R.anim.slide_out_right)
                 .replace(R.id.fragmentContainer, StudyEditFragment.newInstance(id))
+                .addToBackStack("editor")
+                .commit();
+    }
+
+    // opens the Apps page (tag apps Productive / Distracting / Other) from "Add app"
+    public void openApps() {
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
+                        R.anim.slide_in_left, R.anim.slide_out_right)
+                .replace(R.id.fragmentContainer, new AppsFragment())
                 .addToBackStack("editor")
                 .commit();
     }
