@@ -9,6 +9,9 @@ import android.view.View;
 
 public class GlowRingView extends View {
 
+    // one slow glow takes this long; make it bigger for slower, smaller for faster
+    private static final long PERIOD_MS = 4000;
+
     private final Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint arcPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF oval = new RectF();
@@ -67,13 +70,12 @@ public class GlowRingView extends View {
         trackPaint.setColor(0x2EFFFFFF);
         canvas.drawCircle(cx, cy, r, trackPaint);
 
-        // ONE glow per second: brightest right when the second changes,
-        // then it fades until the next second
+        // slow, smooth breathing glow: dim -> bright -> dim, no sharp beat
         float k = 0.4f;
         if (pulsing) {
-            float phase = (System.currentTimeMillis() % 1000L) / 1000f;
-            float decay = 1f - phase;
-            k = 0.15f + 0.85f * decay * decay;
+            float phase = (System.currentTimeMillis() % PERIOD_MS) / (float) PERIOD_MS;
+            float breath = 0.5f - 0.5f * (float) Math.cos(2 * Math.PI * phase);   // 0..1..0
+            k = 0.30f + 0.55f * breath;
         }
 
         float sweep = 360f * progress;

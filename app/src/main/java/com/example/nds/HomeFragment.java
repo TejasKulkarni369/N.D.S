@@ -147,16 +147,16 @@ public class HomeFragment extends Fragment {
             leftMs += Math.max(0, lim - u.usedMs);
         }
 
-        if (limitMs == 0) {
-            totalTime.setText("--");
-            totalLimit.setText("Pick Distracting apps on the Apps page");
-            ring.setProgress(0f);
-        } else {
-            totalTime.setText(formatLeft(leftMs));
-            totalLimit.setText("left of "
-                    + UsageRepository.formatMinutes((int) (limitMs / 60000)));
-            ring.setProgress(leftMs / (float) limitMs);
+        // big number: total screen time today (all apps)
+        long totalAll = 0;
+        for (long v : s.millis.values()) {
+            totalAll += v;
         }
+        totalTime.setText(formatLeft(totalAll));
+        totalLimit.setText("Total screen time");
+
+        // the ring: how much of your app limits is still left
+        ring.setProgress(limitMs == 0 ? 0f : leftMs / (float) limitMs);
         adapter.setItems(usage);
 
         // balance widget: [0] others, [1] productive, [2] distracting

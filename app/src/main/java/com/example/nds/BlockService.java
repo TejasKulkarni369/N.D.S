@@ -179,7 +179,7 @@ public class BlockService extends Service {
         for (AppUsage u : UsageRepository.usageList(this, s)) {
             if (u.usedMin >= u.limitMin) locked.put(u.pkg, u);
         }
-
+        LimitWarner.check(this, UsageRepository.usageList(this, s));   // 50% and 90% warnings
         // a locked app must not stay alive in the background: close it every second
         for (String pkg : locked.keySet()) {
             if (!pkg.equals(s.foreground)) killApp(pkg);

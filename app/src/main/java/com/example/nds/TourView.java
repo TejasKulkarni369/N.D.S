@@ -206,9 +206,9 @@ public class TourView extends FrameLayout {
                         + "(for the lock screen) and notifications. Home asks for them one by "
                         + "one. Everything stays on your phone: no internet, no account."));
 
-        s.add(new Step(R.id.ring, true, "Time left today",
-                "The ring shows how much of your app limits is left. It counts down live and "
-                        + "glows once every second."));
+        s.add(new Step(R.id.ring, true, "Total screen time",
+                "The big number is your total screen time today. The ring shows how much of "
+                        + "your app limits is left, and it glows slowly."));
 
         s.add(new Step(R.id.balanceCard, false, "Today's balance",
                 "See how your day splits between Productive, Distracting and Others. Tap this "
