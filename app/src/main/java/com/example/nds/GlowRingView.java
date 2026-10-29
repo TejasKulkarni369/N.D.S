@@ -41,8 +41,10 @@ public class GlowRingView extends View {
     }
 
     public void startPulse() {
-        pulsing = true;
-        postInvalidateOnAnimation();
+        // only Quality keeps the glow moving
+        pulsing = Perf.ambient(getContext());
+        if (pulsing) postInvalidateOnAnimation();
+        else invalidate();
     }
 
     public void stopPulse() {

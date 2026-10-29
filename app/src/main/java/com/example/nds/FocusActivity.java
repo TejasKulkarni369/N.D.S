@@ -130,7 +130,8 @@ public class FocusActivity extends AppCompatActivity {
         });
 
         // a new Focus session: the intro plays (the stopwatch keeps what it already counted)
-        if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null) {
+        if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null
+                && Perf.intro(this)) {
             content.setAlpha(0f);
             IntroView intro = new IntroView(this, "FOCUS", "Everything else can wait", true);
             ((ViewGroup) root).addView(intro, new FrameLayout.LayoutParams(

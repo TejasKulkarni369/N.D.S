@@ -362,7 +362,7 @@ public class BlockService extends Service {
     }
 
     private void setCountdown(long seconds) {
-        if (overlay == null) return;
+        if (overlay == null || Build.VERSION.SDK_INT < 31 || !Perf.blur(this)) return;
         ((TextView) overlay.findViewById(R.id.overlayCountdown))
                 .setText("Closing in " + seconds + "s");
     }

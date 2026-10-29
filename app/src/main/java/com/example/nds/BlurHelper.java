@@ -26,8 +26,10 @@ public class BlurHelper {
         // older phones: blur a small copy of the screen and lay it on top
         if (!(root instanceof ViewGroup)) return;
         Bitmap blurred = blurredCopy(root);
-        if (blurred == null) return;
-
+        if (root != null && dialog.getWindow() != null && !Perf.dialogAnim(root.getContext())) {
+            dialog.getWindow().setWindowAnimations(0);   // cards appear without animation
+        }
+        if (root == null || !Perf.blur(root.getContext())) return;
         ImageView veil = new ImageView(root.getContext());
         veil.setImageBitmap(blurred);
         veil.setScaleType(ImageView.ScaleType.FIT_XY);

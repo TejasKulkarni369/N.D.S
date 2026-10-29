@@ -29,10 +29,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int TAB_COUNT = 4;   // 0 Home, 1 Limits, 2 Tasks, 3 Apps
+    private static final int TAB_COUNT = 4;   // 0 Home, 1 Limits, 2 Tasks, 3 Time Table
     private static final int SLOTS = 5;       // nav slots: the middle one holds the Focus button
     private static final int[] SLOT = {0, 1, 3, 4};   // tab -> nav slot
 
@@ -54,12 +55,15 @@ public class MainActivity extends AppCompatActivity {
         // system splash is just the dark background; our own intro takes over
         splash.setOnExitAnimationListener(provider -> provider.remove());
 
-        // system bars AND the keyboard push the content
+        // system bars AND the keyboard push the content; the Settings card follows the status bar
         View content = findViewById(R.id.content);
+        View settingsBtn = findViewById(R.id.settingsBtn);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
             content.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            settingsBtn.setTranslationY(bars.top);
+            settingsBtn.setTranslationX(-bars.right);
             return insets;
         });
 
@@ -68,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         tabs[0] = findViewById(R.id.navHome);
         tabs[1] = findViewById(R.id.navLimits);
         tabs[2] = findViewById(R.id.navTasks);
-        tabs[3] = findViewById(R.id.navApps);
+        tabs[3] = findViewById(R.id.navApps);   // the Time Table tab
 
         if (savedInstanceState != null) {
             current = savedInstanceState.getInt("tab", 0);
@@ -76,8 +80,13 @@ public class MainActivity extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragmentContainer, new HomeFragment())
                     .commit();
-            prepareEntrance();
-            showIntro();
+            if (Perf.intro(this)) {
+                prepareEntrance();
+                showIntro();
+            } else {
+                // Balanced / Performance: no intro, the app is simply there
+                navBar.postDelayed(this::maybeStartTour, 600);
+            }
         }
         updateNavColors();
 
@@ -102,6 +111,9 @@ public class MainActivity extends AppCompatActivity {
         // the round Focus button: a plain click only, swipes never reach it
         findViewById(R.id.focusBtn).setOnClickListener(v -> askFocus());
 
+        // the Settings card in the top-right corner
+        settingsBtn.setOnClickListener(v -> openSettings());
+
         // opened from a task reminder: jump to that tab
         final int wanted = getIntent().getIntExtra("tab", 0);
         if (savedInstanceState == null && wanted > 0 && wanted < TAB_COUNT) {
@@ -113,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onFling(MotionEvent e1, @NonNull MotionEvent e2, float vx, float vy) {
                 if (e1 == null) return false;
-                // no page swipes during the tour or while a task/Focus page is open
+                // no page swipes during the tour or while an editor/Settings page is open
                 if (tour != null) return false;
                 if (getSupportFragmentManager().getBackStackEntryCount() > 0) return false;
                 float dx = e2.getX() - e1.getX();
@@ -138,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 FragmentManager fm = getSupportFragmentManager();
-                if (fm.getBackStackEntryCount() > 0) fm.popBackStack();   // close task/Focus page
+                if (fm.getBackStackEntryCount() > 0) fm.popBackStack();   // close the open page
                 else if (current != 0) select(0);
                 else finish();
             }
@@ -170,6 +182,22 @@ public class MainActivity extends AppCompatActivity {
         if (PermissionUtils.hasUsageAccess(this) && PermissionUtils.hasOverlayAccess(this)) {
             ContextCompat.startForegroundService(this, new Intent(this, BlockService.class));
         }
+    }
+
+    // the Optimizations mode was changed: update what is already on the screen
+    public void onPerfChanged() {
+        View bg = ((ViewGroup) findViewById(R.id.main)).getChildAt(0);
+        if (bg instanceof GlowBackgroundView) ((GlowBackgroundView) bg).refreshMode();
+    }
+
+    // a page transaction with the slide animations only when the mode allows them
+    private FragmentTransaction pageTx() {
+        FragmentTransaction t = getSupportFragmentManager().beginTransaction();
+        if (Perf.pageAnim(this)) {
+            t.setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
+                    R.anim.slide_in_left, R.anim.slide_out_right);
+        }
+        return t;
     }
 
     // the first time the app is opened after installing: tour of every feature
@@ -265,79 +293,67 @@ public class MainActivity extends AppCompatActivity {
     private Fragment fragmentFor(int tab) {
         if (tab == 1) return new LimitsFragment();
         if (tab == 2) return new TasksFragment();
-        if (tab == 3) return new StudyFragment();
+        if (tab == 3) return new StudyFragment();   // the Time Table tab
         return new HomeFragment();
     }
 
-    // used by the "Add app" button on the Limits page
-    public void openTab() {
-        select();
-    }
-
-    private void select() {
+    // used by older code that jumps to a tab
+    public void openTab(int tab) {
+        select(tab);
     }
 
     // opens the separate task page (id 0 = new task)
     public void openTaskEditor(long taskId) {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, TaskEditFragment.newInstance(taskId))
+        pageTx().replace(R.id.fragmentContainer, TaskEditFragment.newInstance(taskId))
                 .addToBackStack("editor")
                 .commit();
     }
 
     // opens the Focus setup page (timer + emergency apps)
     public void openFocusSetup() {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, new FocusSetupFragment())
+        pageTx().replace(R.id.fragmentContainer, new FocusSetupFragment())
                 .addToBackStack("editor")
                 .commit();
     }
 
     // opens the list of apps used today (from the Today's balance card)
     public void openUsedToday() {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, new UsedTodayFragment())
+        pageTx().replace(R.id.fragmentContainer, new UsedTodayFragment())
                 .addToBackStack("editor")
                 .commit();
     }
 
     // opens the study timetable
     public void openStudy() {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, new StudyFragment())
+        pageTx().replace(R.id.fragmentContainer, new StudyFragment())
                 .addToBackStack("editor")
                 .commit();
     }
 
     // opens one study session to add or edit (id 0 = new session)
     public void openStudyEditor(long id) {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, StudyEditFragment.newInstance(id))
+        pageTx().replace(R.id.fragmentContainer, StudyEditFragment.newInstance(id))
                 .addToBackStack("editor")
                 .commit();
     }
 
     // opens the Apps page (tag apps Productive / Distracting / Other) from "Add app"
     public void openApps() {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left,
-                        R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, new AppsFragment())
+        pageTx().replace(R.id.fragmentContainer, new AppsFragment())
                 .addToBackStack("editor")
                 .commit();
     }
 
-    // closes the task page, the Focus setup page or the used-today page
+    // opens Settings (from the card in the top-right corner)
+    public void openSettings() {
+        if (tour != null) return;
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) return;
+        pageTx().replace(R.id.fragmentContainer, new SettingsFragment())
+                .addToBackStack("editor")
+                .commit();
+    }
+
+    // closes the open page (task, Focus setup, used-today, study, apps, Settings)
     public void closeEditor() {
         getSupportFragmentManager().popBackStack();
     }
@@ -345,7 +361,7 @@ public class MainActivity extends AppCompatActivity {
     private void select(int tab) {
         FragmentManager fm = getSupportFragmentManager();
 
-        // leaving an open task/Focus page: close it first
+        // leaving an open page: close it first
         boolean editorOpen = fm.getBackStackEntryCount() > 0;
         if (editorOpen) fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
@@ -353,18 +369,24 @@ public class MainActivity extends AppCompatActivity {
         boolean toRight = tab > current;
         current = tab;
 
-        fm.beginTransaction()
-                .setCustomAnimations(
-                        toRight ? R.anim.slide_in_right : R.anim.slide_in_left,
-                        toRight ? R.anim.slide_out_left : R.anim.slide_out_right)
-                .replace(R.id.fragmentContainer, fragmentFor(tab))
-                .commit();
+        FragmentTransaction t = fm.beginTransaction();
+        if (Perf.pageAnim(this)) {
+            t.setCustomAnimations(
+                    toRight ? R.anim.slide_in_right : R.anim.slide_in_left,
+                    toRight ? R.anim.slide_out_left : R.anim.slide_out_right);
+        }
+        t.replace(R.id.fragmentContainer, fragmentFor(tab)).commit();
 
-        navPill.animate()
-                .translationX(SLOT[tab] * pillW)
-                .setDuration(260)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
+        // the orange pill: smooth in Quality, quick in Balanced, instant in Performance
+        if (Perf.pageAnim(this)) {
+            navPill.animate()
+                    .translationX(SLOT[tab] * pillW)
+                    .setDuration(Perf.mode(this) == Perf.QUALITY ? 320 : 220)
+                    .setInterpolator(new DecelerateInterpolator())
+                    .start();
+        } else {
+            navPill.setTranslationX(SLOT[tab] * pillW);
+        }
         updateNavColors();
     }
 

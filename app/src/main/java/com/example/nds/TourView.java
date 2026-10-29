@@ -206,6 +206,10 @@ public class TourView extends FrameLayout {
                         + "(for the lock screen) and notifications. Home asks for them one by "
                         + "one. Everything stays on your phone: no internet, no account."));
 
+        s.add(new Step(R.id.settingsBtn, false, "Settings",
+                "Tap this card for Optimizations: Quality, Balanced or Performance. "
+                        + "Quality is the smoothest, Performance is the fastest."));
+
         s.add(new Step(R.id.ring, true, "Total screen time",
                 "The big number is your total screen time today. The ring shows how much of "
                         + "your app limits is left, and it glows slowly."));

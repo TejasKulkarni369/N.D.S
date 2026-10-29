@@ -35,6 +35,7 @@ public class GlowBackgroundView extends View {
     private final Random rnd = new Random();
     private long lastNanos = 0;
     private boolean running = false;
+    private boolean animated = true;   // Quality mode only
 
     public GlowBackgroundView(Context context) {
         super(context);
@@ -79,6 +80,14 @@ public class GlowBackgroundView extends View {
         return rnd.nextBoolean() ? s : -s;
     }
 
+    // called when the Optimizations mode changes
+    public void refreshMode() {
+        animated = Perf.ambient(getContext());
+        lastNanos = 0;
+        if (animated) postInvalidateOnAnimation();
+        else invalidate();
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -100,19 +109,27 @@ public class GlowBackgroundView extends View {
         int h = getHeight();
 
         for (Blob b : blobs) {
-            b.nextChange -= dt;
-            if (b.nextChange <= 0) {            // pick a new random pattern
-                b.targetSpeed = randomSpeed();
-                b.targetOrbit = randomOrbit();
-                b.nextChange = 4 + rnd.nextFloat() * 5;
-            }
-            float ease = Math.min(1f, dt * 0.5f);
-            b.speed += (b.targetSpeed - b.speed) * ease;
-            b.orbit += (b.targetOrbit - b.orbit) * ease;
-            b.angle += b.speed * dt;
+            float x;
+            float y;
 
-            float x = w * b.cx + (float) Math.cos(b.angle) * b.orbit * w;
-            float y = h * b.cy + (float) Math.sin(b.angle) * b.orbit * w;
+            if (animated) {
+                b.nextChange -= dt;
+                if (b.nextChange <= 0) {            // pick a new random pattern
+                    b.targetSpeed = randomSpeed();
+                    b.targetOrbit = randomOrbit();
+                    b.nextChange = 4 + rnd.nextFloat() * 5;
+                }
+                float ease = Math.min(1f, dt * 0.5f);
+                b.speed += (b.targetSpeed - b.speed) * ease;
+                b.orbit += (b.targetOrbit - b.orbit) * ease;
+                b.angle += b.speed * dt;
+
+                x = w * b.cx + (float) Math.cos(b.angle) * b.orbit * w;
+                y = h * b.cy + (float) Math.sin(b.angle) * b.orbit * w;
+            } else {
+                x = w * b.cx;       // still: exactly where the design has them
+                y = h * b.cy;
+            }
 
             canvas.save();
             canvas.translate(x, y);
@@ -120,13 +137,14 @@ public class GlowBackgroundView extends View {
             canvas.restore();
         }
 
-        if (running) postInvalidateOnAnimation();
+        if (running && animated) postInvalidateOnAnimation();
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         running = true;
+        animated = Perf.ambient(getContext());
         lastNanos = 0;
         postInvalidateOnAnimation();
     }
@@ -141,6 +159,7 @@ public class GlowBackgroundView extends View {
     protected void onWindowVisibilityChanged(int visibility) {
         super.onWindowVisibilityChanged(visibility);
         running = (visibility == VISIBLE);
+        animated = Perf.ambient(getContext());
         if (running) {
             lastNanos = 0;
             postInvalidateOnAnimation();
