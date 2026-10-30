@@ -52,6 +52,16 @@ public class FocusStore {
         return exited;
     }
 
+    // Focus from now until a fixed time (used by the Time Table lock-in)
+    public static void startUntil(Context c, long endAtMs, List<String> pkgs) {
+        sp(c).edit()
+                .putLong("startAt", System.currentTimeMillis())
+                .putLong("endAt", endAtMs)
+                .putString("apps", TextUtils.join(",", pkgs))
+                .putBoolean("exited", false)
+                .apply();
+    }
+
     // the 5 emergency apps
     public static List<String> apps(Context c) {
         String s = sp(c).getString("apps", "");

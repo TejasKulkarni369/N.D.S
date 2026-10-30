@@ -24,10 +24,14 @@ public class StudyReminderReceiver extends BroadcastReceiver {
         int type = intent.getIntExtra("type", StudyScheduler.START);
 
         StudySlot s = StudyStore.get(ctx, id);
-        if (s == null || !s.notify || !s.onDay(day)) return;   // deleted or changed since
+        if (s == null || !s.onDay(day) || (!s.notify && !s.lockIn)) return;   // deleted or changed since
 
         // set next week's alarm of the same kind
         StudyScheduler.scheduleOne(ctx, s, day, type);
+
+        // lock-in: the phone goes into Focus until the end of the session
+        if (type == StudyScheduler.START && s.lockIn) StudyLock.startIfDue(ctx);
+        if (!s.notify) return;   // lock-in only, no notifications
 
         String range = StudyScheduler.timeText(s.startMin) + " – "
                 + StudyScheduler.timeText(s.endMin);
@@ -38,7 +42,9 @@ public class StudyReminderReceiver extends BroadcastReceiver {
             text = s.subject + " starts at " + StudyScheduler.timeText(s.startMin);
         } else if (type == StudyScheduler.START) {
             title = "Study time";
-            text = s.subject + " · " + range + ". Time to focus!";
+            text = s.subject + " · " + range + (s.lockIn
+                    ? ". Your phone is locked in until " + StudyScheduler.timeText(s.endMin) + "."
+                    : ". Time to focus!");
         } else {
             title = "Session finished";
             text = s.subject + " is done. Take a short break.";
@@ -60,7 +66,7 @@ public class StudyReminderReceiver extends BroadcastReceiver {
 
         int code = StudyScheduler.code(id, day, type);
         Intent open = new Intent(ctx, MainActivity.class);
-        open.putExtra("tab", 3);   // opens the Tasks tab
+        open.putExtra("tab", 3);   // opens the Time Table tab
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(ctx, code, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

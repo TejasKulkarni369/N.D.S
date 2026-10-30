@@ -77,7 +77,7 @@ public class StudyScheduler {
     }
 
     public static void schedule(Context c, StudySlot s) {
-        if (!s.notify) return;
+        if (!s.notify && !s.lockIn) return;   // lock-in needs the alarms too
         for (int day = 0; day < 7; day++) {
             if (!s.onDay(day)) continue;
             for (int type = 0; type < 3; type++) {

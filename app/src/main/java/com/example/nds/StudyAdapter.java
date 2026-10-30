@@ -98,8 +98,13 @@ public class StudyAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         SlotVH h = (SlotVH) holder;
         StudySlot s = it.slot;
         h.subject.setText(s.subject);
-        h.when.setText(StudyScheduler.timeText(s.startMin) + " – "
-                + StudyScheduler.timeText(s.endMin));
+        String when = StudyScheduler.timeText(s.startMin) + " – "
+                + StudyScheduler.timeText(s.endMin);
+        if (s.lockIn) when += "  ·  Lock-in";
+        if (!s.chapters.isEmpty()) {
+            when += "  ·  " + s.doneCount() + "/" + s.chapters.size() + " chapters";
+        }
+        h.when.setText(when);
         h.notify.setText(s.notify ? "Notifications on" : "Muted");
         h.notify.setTextColor(ContextCompat.getColor(h.itemView.getContext(),
                 s.notify ? R.color.productive : R.color.text_dim));

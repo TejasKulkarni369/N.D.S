@@ -130,8 +130,7 @@ public class FocusActivity extends AppCompatActivity {
         });
 
         // a new Focus session: the intro plays (the stopwatch keeps what it already counted)
-        if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null
-                && Perf.intro(this)) {
+        if (getIntent().getBooleanExtra("intro", false) && savedInstanceState == null) {
             content.setAlpha(0f);
             IntroView intro = new IntroView(this, "FOCUS", "Everything else can wait", true);
             ((ViewGroup) root).addView(intro, new FrameLayout.LayoutParams(
@@ -183,6 +182,7 @@ public class FocusActivity extends AppCompatActivity {
     private void doExit() {
         ExitStore.use(this);
         FocusStore.exitNow(this);
+        StudyLock.skipCurrent(this);   // a Time Table lock-in does not start again today
         StopwatchStore.reset(this);
 
         int left = ExitStore.left(this);

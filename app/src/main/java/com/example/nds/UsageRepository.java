@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,73 +88,118 @@ public class UsageRepository {
         return label;
     }
 
-    private static void close(Map<String, Long> total, String pkg, long start, long end) {
+    // ---- incremental tracking: the whole day is read ONCE, after that only new events ----
+    private static final Object TRACK_LOCK = new Object();
+    private static long trkDay = 0;                 // midnight this state belongs to
+    private static long trkLastTs = 0;              // newest event time already processed
+    private static final Map<String, Long> trkDone = new HashMap<>();      // closed sessions today
+    private static final Map<String, Integer> trkOpens = new HashMap<>();
+    private static String trkCur = null;            // app on screen
+    private static long trkCurStart = 0;
+    private static String trkPausedPkg = null;
+    private static long trkPausedAt = 0;
+    private static final Map<String, Long> trkSeen = new HashMap<>();      // dedupe of the 1.5 s overlap
+
+    private static long trkMidnight() {
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        return c.getTimeInMillis();
+    }
+
+    private static void trkClose(String pkg, long start, long end) {
         if (pkg != null && end > start && counts(pkg)) {
-            Long old = total.get(pkg);
-            total.put(pkg, (old == null ? 0L : old) + (end - start));
+            Long old = trkDone.get(pkg);
+            trkDone.put(pkg, (old == null ? 0L : old) + (end - start));
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void trkApply(UsageEvents.Event e) {
+        int type = e.getEventType();
+        long t = e.getTimeStamp();
+        String pkg = e.getPackageName();
+
+        if (type == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+            if (pkg == null || pkg.equals(trkCur)) return;
+            trkClose(trkCur, trkCurStart, t);
+            // moving between screens inside one app is not a new "open"
+            boolean quickReturn = pkg.equals(trkPausedPkg) && t - trkPausedAt < 1500;
+            if (!quickReturn && counts(pkg)) {
+                Integer n = trkOpens.get(pkg);
+                trkOpens.put(pkg, n == null ? 1 : n + 1);
+            }
+            trkCur = pkg;
+            trkCurStart = t;
+        } else if (type == UsageEvents.Event.MOVE_TO_BACKGROUND) {
+            if (pkg == null) return;
+            if (pkg.equals(trkCur)) {
+                trkClose(trkCur, trkCurStart, t);
+                trkCur = null;
+            }
+            trkPausedPkg = pkg;
+            trkPausedAt = t;
+        } else if (type == UsageEvents.Event.SCREEN_NON_INTERACTIVE
+                || type == UsageEvents.Event.DEVICE_SHUTDOWN) {
+            trkClose(trkCur, trkCurStart, t);
+            trkCur = null;
         }
     }
 
     @SuppressWarnings("deprecation")
     public static Snapshot snapshot(Context ctx) {
         refreshCache(ctx);
-        UsageStatsManager usm =
-                (UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
+        synchronized (TRACK_LOCK) {
+            long now = System.currentTimeMillis();
+            long midnight = trkMidnight();
 
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.HOUR_OF_DAY, 0);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        long now = System.currentTimeMillis();
-
-        Map<String, Long> total = new HashMap<>();
-        Map<String, Integer> opens = new HashMap<>();
-        UsageEvents events = usm.queryEvents(c.getTimeInMillis(), now);
-        if (events == null) return new Snapshot(total, opens, null);
-
-        UsageEvents.Event e = new UsageEvents.Event();
-        String cur = null;
-        long curStart = 0;
-        String lastPausedPkg = null;
-        long lastPausedAt = 0;
-
-        while (events.hasNextEvent()) {
-            events.getNextEvent(e);
-            int type = e.getEventType();
-            long t = e.getTimeStamp();
-
-            if (type == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                String pkg = e.getPackageName();
-                if (!pkg.equals(cur)) {
-                    close(total, cur, curStart, t);
-                    // moving between screens inside one app is not a new "open"
-                    boolean quickReturn = pkg.equals(lastPausedPkg) && t - lastPausedAt < 1500;
-                    if (!quickReturn && counts(pkg)) {
-                        Integer n = opens.get(pkg);
-                        opens.put(pkg, n == null ? 1 : n + 1);
-                    }
-                    cur = pkg;
-                    curStart = t;
-                }
-            } else if (type == UsageEvents.Event.MOVE_TO_BACKGROUND) {
-                String pkg = e.getPackageName();
-                if (pkg.equals(cur)) {
-                    close(total, cur, curStart, t);
-                    cur = null;
-                }
-                lastPausedPkg = pkg;
-                lastPausedAt = t;
-            } else if (type == UsageEvents.Event.SCREEN_NON_INTERACTIVE
-                    || type == UsageEvents.Event.DEVICE_SHUTDOWN) {
-                close(total, cur, curStart, t);
-                cur = null;
+            // new day (or the clock/date changed): start again from midnight
+            if (trkDay != midnight) {
+                trkDone.clear();
+                trkOpens.clear();
+                trkSeen.clear();
+                trkCur = null;
+                trkCurStart = 0;
+                trkPausedPkg = null;
+                trkPausedAt = 0;
+                trkDay = midnight;
+                trkLastTs = midnight;
             }
-        }
 
-        String foreground = cur;
-        close(total, cur, curStart, now);   // app still on screen
-        return new Snapshot(total, opens, foreground);
+            UsageStatsManager usm =
+                    (UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
+
+            // first call: the whole day. After that: only the last moments (1.5 s overlap, deduped)
+            long begin = Math.max(trkDay, trkLastTs - 1500);
+            UsageEvents events = usm.queryEvents(begin, now);
+            if (events != null) {
+                UsageEvents.Event e = new UsageEvents.Event();
+                while (events.hasNextEvent()) {
+                    events.getNextEvent(e);
+                    long ts = e.getTimeStamp();
+                    String sig = e.getEventType() + "|" + e.getPackageName() + "|" + ts;
+                    if (trkSeen.containsKey(sig)) continue;
+                    trkSeen.put(sig, ts);
+                    trkApply(e);
+                    if (ts > trkLastTs) trkLastTs = ts;
+                }
+            }
+
+            // forget signatures that can no longer come back
+            Iterator<Map.Entry<String, Long>> it = trkSeen.entrySet().iterator();
+            while (it.hasNext()) {
+                if (it.next().getValue() < trkLastTs - 6000) it.remove();
+            }
+
+            Map<String, Long> total = new HashMap<>(trkDone);
+            if (trkCur != null && counts(trkCur)) {          // app still on screen
+                Long old = total.get(trkCur);
+                total.put(trkCur, (old == null ? 0L : old) + Math.max(0L, now - trkCurStart));
+            }
+            return new Snapshot(total, new HashMap<>(trkOpens), trkCur);
+        }
     }
 
     public static int opensFor(Snapshot s, String pkg) {
@@ -298,6 +344,7 @@ public class UsageRepository {
             }
         }
     }
+
     public static String formatMinutes(int min) {
         if (min < 60) return min + "m";
         int h = min / 60;

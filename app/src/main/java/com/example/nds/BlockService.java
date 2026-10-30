@@ -6,10 +6,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.usage.UsageEvents;
-import android.app.usage.UsageStatsManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.graphics.PixelFormat;
@@ -19,8 +19,11 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.Process;
 import android.provider.Settings;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -32,65 +35,227 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BlockService extends Service {
 
     private static final String CHANNEL_ID = "guard";
     private static final int NOTIF_ID = 1;
-    private static final long FAST_MS = 150;              // how often a new open is looked for
+
+    private static final long IDLE_MS = 1000;             // nothing locked, no Focus: check once a second
+    private static final long ACTIVE_MS = 250;            // something locked or Focus on: watch closer
+    private static final long SLOW_MS = 1000;             // totals, icon, warnings, overlay bookkeeping
+    private static final long KILL_SWEEP_MS = 15000;      // background-kill of locked apps (was every second)
+    private static final long ALLOWED_REFRESH_MS = 30000; // Focus allowed-apps list is cached
     private static final long WARNING_TIMEOUT_MS = 20000; // unanswered warning counts as "No"
     private static final long AFTER_NO_MS = 3000;         // time left to close after "No"
     private static final long FORCE_STOP_GAP_MS = 8000;   // "Force stop" for one app at most every 8 s
     private static final long CLOSE_SAFETY_MS = 7000;     // the cover never stays longer than this
     private static final long BROKEN_PAUSE_MS = 10 * 60000L; // after a failed Force stop, skip it for 10 min
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
+    // main thread: only screens (overlay, toasts, Focus screen). Never usage scans.
+    private final Handler ui = new Handler(Looper.getMainLooper());
+
+    // worker thread (low priority): all the checking
+    private HandlerThread worker;
+    private Handler bg;
+
     private WindowManager wm;
+    private volatile boolean screenOn = true;
+
+    // ---- main-thread state (the Time's up screen) ----
     private View overlay;
     private String overlayPkg;
-    private long holdUntil = 0;
-    private long closeAt = 0;            // when "Time's up" will close the app
-    private boolean warningOpen = false; // the "Are you sure?" card is showing
-    private boolean closing = false;     // Force stop is running under the cover screen
+    private long closeAt = 0;
+    private boolean warningOpen = false;
     private String closingPkg = null;
+    private final Map<String, Long> forceStopAt = new java.util.HashMap<>();
 
-    // apps whose limit is used up right now (refreshed once per second)
-    private final Map<String, AppUsage> locked = new HashMap<>();
+    // ---- shared state (written on one thread, read on another) ----
+    private volatile boolean overlayUp = false;
+    private volatile boolean closing = false;
+    private volatile long holdUntil = 0;
+    private volatile long focusHoldUntil = 0;
+    private volatile long forceStopUntil = 0;
+    private volatile long forceStopBrokenUntil = 0;
+    private volatile Map<String, AppUsage> locked = new ConcurrentHashMap<>();
+    private volatile Set<String> focusAllowed = new HashSet<>();   // empty = Focus is off
+    private volatile boolean protectedNow = false;                 // uninstall protection is active
 
-    // "Force stop" bookkeeping
-    private final Map<String, Long> forceStopAt = new HashMap<>();
-    private long forceStopUntil = 0;          // Settings may be on the screen until then
-    private long forceStopBrokenUntil = 0;    // Force stop did not work on this phone: skip it for a while
+    // screens where the Accessibility service has a job (same list as accessibility_config.xml)
+    private static final Set<String> WATCHED = new HashSet<>(java.util.Arrays.asList(
+            "com.android.settings", "com.google.android.packageinstaller",
+            "com.android.packageinstaller", "com.samsung.android.packageinstaller",
+            "com.miui.packageinstaller", "com.miui.securitycenter", "com.coloros.safecenter",
+            "com.iqoo.secure", "com.vivo.permissionmanager", "com.huawei.systemmanager",
+            "com.android.vending"));
 
-    // Focus mode
-    private Set<String> focusAllowed = new HashSet<>();   // empty = Focus is off
-    private long focusHoldUntil = 0;
+    // ---- worker-thread state ----
     private boolean focusWas = false;
-
-    private final Runnable tick = new Runnable() {
-        @Override
-        public void run() {
-            check();
-            handler.postDelayed(this, 1000);
-        }
-    };
-
-    private final Runnable fast = new Runnable() {
-        @Override
-        public void run() {
-            fastCheck();
-            handler.postDelayed(this, FAST_MS);
-        }
-    };
+    private long lastSlowAt = 0, lastKillAt = 0, allowedAt = 0, lastLockCheckAt = 0;
 
     private final Runnable autoClose = this::closeBlockedApp;
     private final Runnable warnTimeout = () -> hideWarning(true);
     private final Runnable closeSafety = () -> finishClose(closingPkg);
+
+    // ================= the loop (worker thread) =================
+
+    private final Runnable loop = new Runnable() {
+        @Override
+        public void run() {
+            if (!screenOn) return;   // screen off: sleep. The screen-on receiver wakes us.
+            try {
+                long now = System.currentTimeMillis();
+                // cheap: reads only the events since the last call
+                UsageRepository.Snapshot s = UsageRepository.snapshot(BlockService.this);
+                if (now - lastSlowAt >= SLOW_MS) {
+                    lastSlowAt = now;
+                    slowWork(s, now);
+                }
+                fastWork(s);
+                gateTick(s.foreground);
+            } catch (Exception ignored) {
+            }
+            if (screenOn) {
+                boolean busy = !locked.isEmpty() || !focusAllowed.isEmpty();
+                bg.postDelayed(this, busy ? ACTIVE_MS : IDLE_MS);
+            }
+        }
+    };
+
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent i) {
+            if (Intent.ACTION_SCREEN_OFF.equals(i.getAction())) {
+                screenOn = false;
+                bg.removeCallbacks(loop);
+            } else if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) {
+                screenOn = true;
+                bg.removeCallbacks(loop);
+                bg.post(loop);
+            }
+        }
+    };
+
+    // once per second
+    private void slowWork(UsageRepository.Snapshot s, long now) {
+        IconManager.apply(this, s);
+
+        // Time Table lock-in: a session running right now starts Focus (the alarm does it too;
+        // this catches a late alarm, a phone that was off, or a killed app)
+        if (now - lastLockCheckAt >= 15000) {
+            lastLockCheckAt = now;
+            StudyLock.startIfDue(this);
+        }
+
+        // Focus mode on/off
+        boolean focus = FocusStore.isActive(this);
+        if (focus) {
+            if (focusAllowed.isEmpty() || now - allowedAt > ALLOWED_REFRESH_MS) {
+                focusAllowed = FocusStore.allowed(this);   // cached: it asks the system a lot
+                allowedAt = now;
+            }
+        } else {
+            if (focusWas) {
+                StopwatchStore.reset(this);   // the next Focus starts with a fresh stopwatch
+                // after an Emergency Exit the person already got a message
+                if (!FocusStore.consumeExitFlag(this)) {
+                    ui.post(() -> Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show());
+                }
+            }
+            if (!focusAllowed.isEmpty()) focusAllowed = new HashSet<>();
+        }
+        focusWas = focus;
+
+        // which apps are locked right now
+        List<AppUsage> usage = UsageRepository.usageList(this, s);
+        Map<String, AppUsage> newLocked = new ConcurrentHashMap<>();
+        for (AppUsage u : usage) {
+            if (u.usedMin >= u.limitMin) newLocked.put(u.pkg, u);
+        }
+        locked = newLocked;
+
+        // same rule the Accessibility service used: any limit 90% used, Focus on, or bypass used
+        boolean prot = focus || BypassStore.usedToday(this);
+        for (AppUsage u : usage) {
+            if (!prot && u.usedMs * 100 >= u.limitMin * 60000L * 90) prot = true;
+        }
+        protectedNow = prot;
+
+        LimitWarner.check(this, usage);   // 50% and 90% warnings
+
+        // a locked app must not stay alive in the background.
+        // Every 15 s is enough; every second made other apps restart and lag.
+        if (now - lastKillAt >= KILL_SWEEP_MS) {
+            lastKillAt = now;
+            for (String pkg : newLocked.keySet()) {
+                if (!pkg.equals(s.foreground)) killApp(pkg);
+            }
+        }
+
+        final String fg = s.foreground;
+        final AppUsage hit = (fg == null) ? null : newLocked.get(fg);
+        ui.post(() -> overlayTick(fg, hit));
+    }
+
+    // watches the app on the screen (a few times a second, only when something is locked / Focus is on)
+    private void fastWork(UsageRepository.Snapshot s) {
+        final String fg = s.foreground;
+        if (fg == null) return;
+        long now = System.currentTimeMillis();
+
+        // Focus mode: only allowed apps may be on the screen
+        if (focusViolation(fg)) {
+            if (now >= focusHoldUntil) ui.post(() -> enforceFocus(fg));
+            return;
+        }
+
+        // limits: did a locked app just open?
+        final AppUsage u = locked.get(fg);
+        if (u != null && !overlayUp && !closing && now > holdUntil) {
+            ui.post(() -> {
+                if (overlay == null && !closing && System.currentTimeMillis() > holdUntil) {
+                    showOverlay(u);
+                }
+            });
+        }
+    }
+
+    // ================= main thread: the Time's up screen =================
+
+    private void overlayTick(String fg, AppUsage hit) {
+        // during Focus anything that is not allowed gets the Focus screen
+        if (focusViolation(fg)) {
+            if (overlay != null && !closing) hideOverlay(false);
+            enforceFocus(fg);
+            return;
+        }
+        if (closing) return;   // Force stop is running under the cover screen
+
+        long now = System.currentTimeMillis();
+        if (hit != null) {
+            if (overlay == null) {
+                if (now > holdUntil) showOverlay(hit);
+            } else {
+                if (!hit.pkg.equals(overlayPkg)) {
+                    hideWarning(false);
+                    setOverlayTexts(hit);
+                    scheduleClose(autoCloseMs());
+                }
+                if (!warningOpen) {
+                    setCountdown(Math.max(1, (closeAt - now + 999) / 1000));
+                }
+            }
+        } else if (overlay != null) {
+            hideOverlay(true);   // user left on their own: still close the app
+        }
+    }
 
     // "Time's up" stays longer while the emergency bypass is still there to think about
     private long autoCloseMs() {
@@ -99,31 +264,48 @@ public class BlockService extends Service {
 
     private void scheduleClose(long ms) {
         closeAt = System.currentTimeMillis() + ms;
-        handler.removeCallbacks(autoClose);
-        handler.postDelayed(autoClose, ms);
+        ui.removeCallbacks(autoClose);
+        ui.postDelayed(autoClose, ms);
     }
+
+    // ================= lifecycle =================
 
     @Override
     public void onCreate() {
         super.onCreate();
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+
+        worker = new HandlerThread("nds-guard", Process.THREAD_PRIORITY_BACKGROUND);
+        worker.start();
+        bg = new Handler(worker.getLooper());
+
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        screenOn = (pm == null) || pm.isInteractive();
+
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_SCREEN_OFF);
+        f.addAction(Intent.ACTION_SCREEN_ON);
+        ContextCompat.registerReceiver(this, screenReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startAsForeground();
-        handler.removeCallbacks(tick);
-        handler.removeCallbacks(fast);
-        handler.post(tick);
-        handler.post(fast);
+        bg.removeCallbacks(loop);
+        if (screenOn) bg.post(loop);
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        handler.removeCallbacks(tick);
-        handler.removeCallbacks(fast);
+        try {
+            unregisterReceiver(screenReceiver);
+        } catch (Exception ignored) {
+        }
+        bg.removeCallbacksAndMessages(null);
+        worker.quitSafely();
         hideOverlay(false);
+        ui.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 
@@ -156,91 +338,25 @@ public class BlockService extends Service {
         }
     }
 
-    // once per second: totals, icon, Focus, which apps are locked, overlay bookkeeping
-    private void check() {
-        UsageRepository.Snapshot s = UsageRepository.snapshot(this);
-        IconManager.apply(this, s);
+    // ================= Accessibility on demand (banking-safe) =================
 
-        // Focus mode on/off
-        boolean focus = FocusStore.isActive(this);
-        if (focus) {
-            focusAllowed = FocusStore.allowed(this);
-        } else {
-            if (focusWas) {
-                StopwatchStore.reset(this);   // the next Focus starts with a fresh stopwatch
-                if (!FocusStore.consumeExitFlag(this)) {
-                Toast.makeText(this, "Focus complete", Toast.LENGTH_LONG).show();
-            }}
-            focusAllowed = new HashSet<>();
-        }
-        focusWas = focus;
-
-        locked.clear();
-        for (AppUsage u : UsageRepository.usageList(this, s)) {
-            if (u.usedMin >= u.limitMin) locked.put(u.pkg, u);
-        }
-        LimitWarner.check(this, UsageRepository.usageList(this, s));   // 50% and 90% warnings
-        // a locked app must not stay alive in the background: close it every second
-        for (String pkg : locked.keySet()) {
-            if (!pkg.equals(s.foreground)) killApp(pkg);
-        }
-
-        // during Focus anything that is not allowed gets the Focus screen
-        if (focusViolation(s.foreground)) {
-            if (overlay != null && !closing) hideOverlay(false);
-            enforceFocus(s.foreground);
-            return;
-        }
-
-        AppUsage hit = (s.foreground == null) ? null : locked.get(s.foreground);
-        long now = System.currentTimeMillis();
-
-        if (closing) {
-            // Force stop is running under the cover screen: just wait for it
-            return;
-        }
-
-        if (hit != null) {
-            if (overlay == null) {
-                if (now > holdUntil) showOverlay(hit);
-            } else {
-                if (!hit.pkg.equals(overlayPkg)) {
-                    hideWarning(false);
-                    setOverlayTexts(hit);
-                    scheduleClose(autoCloseMs());
-                }
-                if (!warningOpen) {
-                    setCountdown(Math.max(1, (closeAt - now + 999) / 1000));
-                }
-            }
-        } else if (overlay != null) {
-            hideOverlay(true);   // user left on their own: still close the app
-        }
+    // With the one-time ADB grant, the Accessibility service is ON only while it has a job:
+    //  - Force stop is running, or
+    //  - protection is active AND Settings / installer / Play Store is on the screen.
+    // Everywhere else (banking apps, UPI, everything) it is OFF, so nobody sees it.
+    private void gateTick(String fg) {
+        if (!AccessGate.canToggle(this)) return;   // no grant: the person manages it by hand
+        boolean want = closing
+                || (protectedNow && fg != null && WATCHED.contains(fg));
+        if (AccessGate.isEnabled(this) != want) AccessGate.set(this, want);
     }
 
-    // every 150 ms: did a blocked app just open?
-    private void fastCheck() {
-        // Focus mode: only allowed apps may be on the screen
-        if (!focusAllowed.isEmpty()) {
-            String fg = recentForeground(5000);
-            if (focusViolation(fg)) {
-                enforceFocus(fg);
-                return;
-            }
-        }
-
-        // limits: did a locked app just open?
-        if (locked.isEmpty() || overlay != null) return;
-        if (System.currentTimeMillis() <= holdUntil) return;
-
-        String fg = recentForeground(5000);
-        AppUsage u = (fg == null) ? null : locked.get(fg);
-        if (u != null) showOverlay(u);
-    }
+    // ================= Focus =================
 
     // true if this app must not be on the screen during Focus
     private boolean focusViolation(String fg) {
-        if (fg == null || focusAllowed.isEmpty() || focusAllowed.contains(fg)) return false;
+        Set<String> allowed = focusAllowed;
+        if (fg == null || allowed.isEmpty() || allowed.contains(fg)) return false;
         // Settings may show (under our cover) while N.D.S presses "Force stop"
         return !(fg.equals("com.android.settings")
                 && System.currentTimeMillis() < forceStopUntil);
@@ -248,6 +364,7 @@ public class BlockService extends Service {
 
     // bring the Focus screen to the front and close the app that should not be there
     private void enforceFocus(String pkg) {
+        if (pkg == null) return;
         long now = System.currentTimeMillis();
         if (now < focusHoldUntil) return;
         focusHoldUntil = now + 800;
@@ -263,33 +380,11 @@ public class BlockService extends Service {
 
         // never close the launcher or the status bar
         if (!pkg.equals(SystemApps.home(this)) && !pkg.startsWith("com.android.systemui")) {
-            handler.postDelayed(() -> killNow(pkg), 1000);
+            ui.postDelayed(() -> killNow(pkg), 1000);
         }
     }
 
-    // the app that came to the screen most recently (null if it already left)
-    @SuppressWarnings("deprecation")
-    private String recentForeground(long windowMs) {
-        UsageStatsManager usm = (UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
-        long now = System.currentTimeMillis();
-        UsageEvents events = usm.queryEvents(now - windowMs, now);
-        if (events == null) return null;
-
-        UsageEvents.Event e = new UsageEvents.Event();
-        String cur = null;
-        while (events.hasNextEvent()) {
-            events.getNextEvent(e);
-            int type = e.getEventType();
-            if (type == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                cur = e.getPackageName();
-            } else if (type == UsageEvents.Event.MOVE_TO_BACKGROUND) {
-                if (e.getPackageName().equals(cur)) cur = null;
-            } else if (type == UsageEvents.Event.SCREEN_NON_INTERACTIVE) {
-                cur = null;
-            }
-        }
-        return cur;
-    }
+    // ================= Time's up screen =================
 
     private void showOverlay(AppUsage u) {
         ContextThemeWrapper themed = new ContextThemeWrapper(this, R.style.Theme_NDS_App);
@@ -321,10 +416,12 @@ public class BlockService extends Service {
 
         try {
             wm.addView(v, lp);
+            overlayUp = true;
             scheduleClose(autoCloseMs());
         } catch (Exception ex) {
             overlay = null;
             overlayPkg = null;
+            overlayUp = false;
         }
     }
 
@@ -362,7 +459,7 @@ public class BlockService extends Service {
     }
 
     private void setCountdown(long seconds) {
-        if (overlay == null || Build.VERSION.SDK_INT < 31 || !Perf.blur(this)) return;
+        if (overlay == null) return;
         ((TextView) overlay.findViewById(R.id.overlayCountdown))
                 .setText("Closing in " + seconds + "s");
     }
@@ -380,7 +477,7 @@ public class BlockService extends Service {
 
     // blur (Android 12+) or clear the Time's up card behind the warning
     private void blurContent(boolean on) {
-        if (overlay == null || Build.VERSION.SDK_INT < 31) return;
+        if (overlay == null || Build.VERSION.SDK_INT < 31 || !Perf.blur(this)) return;
         View content = overlay.findViewById(R.id.overlayContent);
         if (content == null) return;
         content.setRenderEffect(on
@@ -391,16 +488,16 @@ public class BlockService extends Service {
     private void showWarning() {
         if (overlay == null || closing) return;
         warningOpen = true;
-        handler.removeCallbacks(autoClose);          // pause: do not close the app under the card
-        handler.removeCallbacks(warnTimeout);
-        handler.postDelayed(warnTimeout, WARNING_TIMEOUT_MS);
+        ui.removeCallbacks(autoClose);          // pause: do not close the app under the card
+        ui.removeCallbacks(warnTimeout);
+        ui.postDelayed(warnTimeout, WARNING_TIMEOUT_MS);
         overlay.findViewById(R.id.overlayWarning).setVisibility(View.VISIBLE);
         blurContent(true);
     }
 
     private void hideWarning(boolean resumeClose) {
         warningOpen = false;
-        handler.removeCallbacks(warnTimeout);
+        ui.removeCallbacks(warnTimeout);
         if (overlay == null || closing) return;
         overlay.findViewById(R.id.overlayWarning).setVisibility(View.GONE);
         blurContent(false);
@@ -422,12 +519,15 @@ public class BlockService extends Service {
     }
 
     private void hideOverlay(boolean kill) {
-        handler.removeCallbacks(autoClose);
-        handler.removeCallbacks(warnTimeout);
-        handler.removeCallbacks(closeSafety);
+        ui.removeCallbacks(autoClose);
+        ui.removeCallbacks(warnTimeout);
+        ui.removeCallbacks(closeSafety);
         warningOpen = false;
         closing = false;
-        if (overlay == null) return;
+        if (overlay == null) {
+            overlayUp = false;
+            return;
+        }
 
         final String pkg = overlayPkg;
         try {
@@ -436,12 +536,15 @@ public class BlockService extends Service {
         }
         overlay = null;
         overlayPkg = null;
+        overlayUp = false;
 
         if (kill && pkg != null) {
             // the app is in the background now: close its processes
-            handler.postDelayed(() -> killNow(pkg), 1000);
+            ui.postDelayed(() -> killNow(pkg), 1000);
         }
     }
+
+    // ================= closing apps =================
 
     private void killApp(String pkg) {
         ActivityManager am = getSystemService(ActivityManager.class);
@@ -451,8 +554,8 @@ public class BlockService extends Service {
     // close the background processes now, and again a little later
     private void killNow(String pkg) {
         killApp(pkg);
-        handler.postDelayed(() -> killApp(pkg), 800);
-        handler.postDelayed(() -> killApp(pkg), 2500);
+        ui.postDelayed(() -> killApp(pkg), 800);
+        ui.postDelayed(() -> killApp(pkg), 2500);
     }
 
     private void goHome() {
@@ -467,7 +570,8 @@ public class BlockService extends Service {
 
     private boolean canForceStop(String pkg) {
         if (pkg == null || pkg.equals(getPackageName())) return false;
-        if (!GuardAccessibilityService.isRunning()) return false;   // needs Accessibility
+        // needs Accessibility: running now, or switchable on demand (ADB grant)
+        if (!GuardAccessibilityService.isRunning() && !AccessGate.canToggle(this)) return false;
         long now = System.currentTimeMillis();
         if (now < forceStopBrokenUntil) return false;               // did not work on this phone
         Long last = forceStopAt.get(pkg);
@@ -490,16 +594,40 @@ public class BlockService extends Service {
         // Force stop, hidden under our own cover screen: Settings is never visible
         closing = true;
         closingPkg = pkg;
-        handler.removeCallbacks(autoClose);
-        handler.removeCallbacks(warnTimeout);
+        ui.removeCallbacks(autoClose);
+        ui.removeCallbacks(warnTimeout);
         warningOpen = false;
         showClosingState(pkg);
 
         long now = System.currentTimeMillis();
         forceStopAt.put(pkg, now);
         forceStopUntil = now + 8000;
-        handler.postDelayed(closeSafety, CLOSE_SAFETY_MS);   // never stay here forever
+        ui.postDelayed(closeSafety, CLOSE_SAFETY_MS);   // never stay here forever
 
+        if (GuardAccessibilityService.isRunning()) {
+            launchForceStop(pkg);
+        } else {
+            AccessGate.set(this, true);       // switched on just for this, off again right after
+            awaitAccessibility(pkg, 0);
+        }
+    }
+
+    // wait (up to 2 s) until Android has started the Accessibility service
+    private void awaitAccessibility(String pkg, int tries) {
+        if (!closing) return;
+        if (GuardAccessibilityService.isRunning()) {
+            launchForceStop(pkg);
+            return;
+        }
+        if (tries >= 20) {   // it did not start: use the simple way for a while
+            forceStopBrokenUntil = System.currentTimeMillis() + BROKEN_PAUSE_MS;
+            finishClose(pkg);
+            return;
+        }
+        ui.postDelayed(() -> awaitAccessibility(pkg, tries + 1), 100);
+    }
+
+    private void launchForceStop(String pkg) {
         GuardAccessibilityService.expectForceStop(pkg, pressed -> {
             if (!pressed) forceStopBrokenUntil = System.currentTimeMillis() + BROKEN_PAUSE_MS;
             finishClose(pkg);

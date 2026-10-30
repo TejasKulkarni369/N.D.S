@@ -22,9 +22,18 @@ public class StudyStore {
             JSONArray arr = new JSONArray(sp(c).getString("list", "[]"));
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
+                List<StudySlot.Chapter> chapters = new ArrayList<>();
+                JSONArray ch = o.optJSONArray("chapters");
+                if (ch != null) {
+                    for (int k = 0; k < ch.length(); k++) {
+                        JSONObject chObj = ch.getJSONObject(k);
+                        chapters.add(new StudySlot.Chapter(
+                                chObj.optString("t"), chObj.optBoolean("d")));
+                    }
+                }
                 out.add(new StudySlot(o.getLong("id"), o.getString("subject"),
                         o.getInt("days"), o.getInt("start"), o.getInt("end"),
-                        o.optBoolean("notify", true)));
+                        o.optBoolean("notify", true), o.optBoolean("lock", false), chapters));
             }
         } catch (JSONException ignored) {
         }
@@ -42,6 +51,15 @@ public class StudyStore {
                 o.put("start", s.startMin);
                 o.put("end", s.endMin);
                 o.put("notify", s.notify);
+                o.put("lock", s.lockIn);
+                JSONArray ch = new JSONArray();
+                for (StudySlot.Chapter chapter : s.chapters) {
+                    JSONObject co = new JSONObject();
+                    co.put("t", chapter.text);
+                    co.put("d", chapter.done);
+                    ch.put(co);
+                }
+                o.put("chapters", ch);
             } catch (JSONException ignored) {
             }
             arr.put(o);

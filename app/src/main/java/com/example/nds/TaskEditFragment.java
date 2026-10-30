@@ -22,6 +22,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -52,6 +56,7 @@ public class TaskEditFragment extends Fragment {
     private final Calendar cal = Calendar.getInstance();
     private Task existing;
     private long originalTime;
+    private boolean skipDraft = false;   // true after Save / Delete: nothing to keep
 
     private EditText title, desc, newCheck;
     private TextView dateBtn, timeBtn, count;
@@ -94,6 +99,7 @@ public class TaskEditFragment extends Fragment {
             cal.set(Calendar.MILLISECOND, 0);
         }
         originalTime = cal.getTimeInMillis();
+        restoreDraft(savedInstanceState == null);   // continue where the person stopped
 
         updateLabels();
         renderChecks();
@@ -132,10 +138,109 @@ public class TaskEditFragment extends Fragment {
                 TaskScheduler.cancel(ctx, existing);
                 TaskStore.delete(ctx, existing.id);
             }
+            skipDraft = true;
+            DraftStore.clear(ctx, draftKey());
             close();
         });
 
         return v;
+    }
+
+    // ---------------- auto draft ----------------
+
+    // one draft for "New task", and one per task that is being edited
+    private String draftKey() {
+        return DraftStore.taskKey(existing == null ? 0 : existing.id);
+    }
+
+    // Back, Home, a call, the app being closed: all of them end here, so the draft is always kept
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (!skipDraft) saveDraft();
+    }
+
+    private boolean isDirty(String t, String ds, String pending) {
+        if (!pending.trim().isEmpty()) return true;
+        if (existing == null) {
+            return !t.trim().isEmpty() || !ds.trim().isEmpty() || !items.isEmpty();
+        }
+        if (!t.trim().equals(existing.title)
+                || !ds.trim().equals(existing.description)
+                || cal.getTimeInMillis() != originalTime
+                || items.size() != existing.checks.size()) {
+            return true;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            Task.Check c = existing.checks.get(i);
+            if (!items.get(i).text.equals(c.text) || items.get(i).done != c.done) return true;
+        }
+        return false;
+    }
+
+    private void saveDraft() {
+        Context ctx = getContext();
+        if (ctx == null || title == null) return;
+
+        String t = title.getText().toString();
+        String ds = desc.getText().toString();
+        String pending = newCheck.getText().toString();
+
+        // nothing typed (or nothing changed): no draft
+        if (!isDirty(t, ds, pending)) {
+            DraftStore.clear(ctx, draftKey());
+            return;
+        }
+        try {
+            JSONObject o = new JSONObject();
+            o.put("title", t);
+            o.put("desc", ds);
+            o.put("time", cal.getTimeInMillis());
+            o.put("pending", pending);
+            JSONArray arr = new JSONArray();
+            for (Item it : items) {
+                JSONObject c = new JSONObject();
+                c.put("t", it.text);
+                c.put("d", it.done);
+                arr.put(c);
+            }
+            o.put("checks", arr);
+            DraftStore.put(ctx, draftKey(), o.toString());
+        } catch (JSONException ignored) {
+        }
+    }
+
+    private void restoreDraft(boolean announce) {
+        Context ctx = requireContext();
+        String json = DraftStore.get(ctx, draftKey());
+        if (json == null) return;
+        try {
+            JSONObject o = new JSONObject(json);
+            title.setText(o.optString("title"));
+            desc.setText(o.optString("desc"));
+            newCheck.setText(o.optString("pending"));
+
+            // a time that already passed is not restored for a new task: keep the default
+            long time = o.optLong("time", cal.getTimeInMillis());
+            if (existing != null || time > System.currentTimeMillis()) {
+                cal.setTimeInMillis(time);
+            }
+
+            items.clear();
+            JSONArray arr = o.optJSONArray("checks");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject c = arr.getJSONObject(i);
+                    items.add(new Item(c.optString("t"), c.optBoolean("d")));
+                }
+            }
+            title.setSelection(title.getText().length());
+            if (announce) {
+                Toast.makeText(ctx, "Draft restored", Toast.LENGTH_SHORT).show();
+            }
+        } catch (JSONException e) {
+            DraftStore.clear(ctx, draftKey());
+        }
     }
 
     private void updateLabels() {
@@ -240,6 +345,8 @@ public class TaskEditFragment extends Fragment {
         TaskStore.upsert(ctx, task);
         TaskScheduler.cancel(ctx, task);
         TaskScheduler.schedule(ctx, task);   // skipped if done or the time has passed
+        skipDraft = true;
+        DraftStore.clear(ctx, draftKey());   // saved for real: the draft is not needed
         close();
     }
 
