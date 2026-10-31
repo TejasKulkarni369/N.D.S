@@ -47,4 +47,4 @@ public class AppList {
         Collections.sort(out, (a, b) -> a.label.compareToIgnoreCase(b.label));
         return out;
     }
-}
+}//ddsfsdfsdfsdfsdf
