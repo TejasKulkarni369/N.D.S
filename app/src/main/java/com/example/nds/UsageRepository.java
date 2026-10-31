@@ -37,7 +37,7 @@ public class UsageRepository {
     }
 
     // first limit for an app that just became Distracting
-    private static int defaultLimit(String pkg) {
+    public static int defaultLimit(String pkg) {
         if (pkg.equals("com.instagram.android")) return 60;
         if (pkg.equals("com.google.android.youtube")) return 45;
         return 30;

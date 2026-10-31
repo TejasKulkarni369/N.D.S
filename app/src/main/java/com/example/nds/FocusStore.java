@@ -26,6 +26,7 @@ public class FocusStore {
                 .putLong("endAt", now + durationMs)
                 .putString("apps", TextUtils.join(",", pkgs))
                 .apply();
+        WidgetUpdater.update(c, FocusWidget.class);
     }
 
     public static boolean isActive(Context c) {
@@ -43,6 +44,7 @@ public class FocusStore {
     // ends Focus right now (used by the Emergency Exit)
     public static void exitNow(Context c) {
         sp(c).edit().putLong("endAt", 0).putBoolean("exited", true).apply();
+        WidgetUpdater.update(c, FocusWidget.class);
     }
 
     // true once after an Emergency Exit, so "Focus complete" is not shown
@@ -60,6 +62,7 @@ public class FocusStore {
                 .putString("apps", TextUtils.join(",", pkgs))
                 .putBoolean("exited", false)
                 .apply();
+        WidgetUpdater.update(c, FocusWidget.class);
     }
 
     // the 5 emergency apps
@@ -67,6 +70,8 @@ public class FocusStore {
         String s = sp(c).getString("apps", "");
         List<String> out = new ArrayList<>();
         if (!s.isEmpty()) out.addAll(Arrays.asList(s.split(",")));
+        // an app tagged Distracting never stays open in Focus, even if it was picked earlier
+        out.removeAll(CategoryStore.distractingPackages(c));
         return out;
     }
 

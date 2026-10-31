@@ -67,6 +67,7 @@ public class TaskStore {
             arr.put(o);
         }
         sp(c).edit().putString("list", arr.toString()).apply();
+        WidgetUpdater.update(c, TasksWidget.class);
     }
 
     public static Task get(Context c, long id) {

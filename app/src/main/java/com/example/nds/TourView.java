@@ -264,6 +264,16 @@ public class TourView extends FrameLayout {
                 "Swipe left or right anywhere to change pages. The N.D.S icon on your home "
                         + "screen changes as your limit fills up."));
 
+        s.add(new Step(0, false, "Privacy & offline mode",
+                "N.D.S works fully offline. It has no internet access, no account and no "
+                        + "login, and it never sends anything out of your phone. Your screen "
+                        + "time, limits, tasks and time table are stored only on this phone, "
+                        + "and uninstalling N.D.S deletes all of it.\n\n"
+                        + "Usage access only measures your app time. Notification access only "
+                        + "counts notifications per app and never reads what they say. "
+                        + "Accessibility, if you turn it on, only guards the Settings screens "
+                        + "and closes locked apps."));
+
         s.add(new Step(0, false, "You're all set",
                 "Start by tagging your Distracting apps on the Apps tab. Be in your limits!"));
 

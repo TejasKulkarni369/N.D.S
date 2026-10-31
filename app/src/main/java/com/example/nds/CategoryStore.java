@@ -20,6 +20,23 @@ public class CategoryStore {
             "com.twitter.android"
     };
 
+    // apps pre-ticked on the first-run "Choose your distracting apps" page (if installed)
+    private static final String[] SUGGESTED = {
+            "com.instagram.android", "com.instagram.lite", "com.instagram.barcelona",
+            "com.google.android.youtube", "com.twitter.android",
+            "com.facebook.katana", "com.facebook.lite", "com.snapchat.android",
+            "com.reddit.frontpage", "com.pinterest", "com.zhiliaoapp.musically",
+            "com.netflix.mediaclient", "in.startv.hotstar", "in.mohalla.sharechat",
+            "in.mohalla.video", "com.eterno.shortvideos", "tv.twitch.android.app"
+    };
+
+    public static boolean isSuggested(String pkg) {
+        for (String p : SUGGESTED) {
+            if (p.equals(pkg)) return true;
+        }
+        return false;
+    }
+
     private static SharedPreferences sp(Context c) {
         return c.getSharedPreferences("categories", Context.MODE_PRIVATE);
     }
@@ -63,6 +80,15 @@ public class CategoryStore {
                     .remove("pendingDay_" + pkg);
         }
         e.apply();
+    }
+
+    // the first-run choice: takes effect right now (no "until tomorrow" wait)
+    public static void setNow(Context c, String pkg, int cat) {
+        sp(c).edit()
+                .putInt("cat_" + pkg, cat)
+                .remove("pendingCat_" + pkg)
+                .remove("pendingDay_" + pkg)
+                .apply();
     }
 
     public static Set<String> distractingPackages(Context c) {

@@ -88,16 +88,20 @@ public class FocusSetupFragment extends Fragment {
                 b -> ((MainActivity) requireActivity()).closeEditor());
         v.findViewById(R.id.focusStart).setOnClickListener(b -> start());
 
-        // load the installed apps (without Phone and Contacts, they are always allowed)
+        // load the installed apps (without Phone and Contacts, they are always allowed,
+        // and without the apps tagged Distracting)
         Context app = requireContext().getApplicationContext();
         new Thread(() -> {
             List<AppList.Item> all = AppList.load(app);
             String dialer = SystemApps.dialer(app);
             String contacts = SystemApps.contacts(app);
+            Set<String> distracting = CategoryStore.distractingPackages(app);
 
             List<AppList.Item> filtered = new ArrayList<>();
             for (AppList.Item it : all) {
-                if (!it.pkg.equals(dialer) && !it.pkg.equals(contacts)) filtered.add(it);
+                if (it.pkg.equals(dialer) || it.pkg.equals(contacts)) continue;
+                if (distracting.contains(it.pkg)) continue;   // Distracting apps are never emergency apps
+                filtered.add(it);
             }
 
             if (getActivity() == null) return;

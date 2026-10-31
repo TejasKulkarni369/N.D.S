@@ -15,6 +15,7 @@ import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
@@ -161,6 +162,11 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(
                     this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
+
+        // the Focus widget opens the "Are you sure?" card
+        if (savedInstanceState == null && getIntent().getBooleanExtra("focus", false)) {
+            navBar.postDelayed(this::askFocus, 900);
+        }
     }
 
     @Override
@@ -173,6 +179,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        // the Settings gear is locked during Focus
+        View gear = findViewById(R.id.settingsBtn);
+        boolean inFocus = FocusStore.isActive(this);
+        gear.setAlpha(inFocus ? 0.35f : 1f);
+        gear.setEnabled(!inFocus);
+
         // during Focus the app itself shows only the Focus screen
         if (FocusStore.isActive(this)) {
             startActivity(new Intent(this, FocusActivity.class));
@@ -182,6 +194,16 @@ public class MainActivity extends AppCompatActivity {
         if (PermissionUtils.hasUsageAccess(this) && PermissionUtils.hasOverlayAccess(this)) {
             ContextCompat.startForegroundService(this, new Intent(this, BlockService.class));
         }
+    }
+
+    // a widget (or a reminder) was tapped while N.D.S is already open
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        int tab = intent.getIntExtra("tab", 0);
+        if (tab >= 0 && tab < TAB_COUNT) select(tab);
+        if (intent.getBooleanExtra("focus", false)) navBar.post(this::askFocus);
     }
 
     // the Optimizations mode was changed: update what is already on the screen
@@ -202,8 +224,16 @@ public class MainActivity extends AppCompatActivity {
 
     // the first time the app is opened after installing: tour of every feature
     private void maybeStartTour() {
-        if (isFinishing() || tour != null || TourStore.isDone(this)) return;
+        if (isFinishing() || tour != null) return;
         if (FocusStore.isActive(this)) return;
+
+        // first launch (also after an update): choose the Distracting apps. Shown once.
+        if (!OnboardStore.isDone(this)) {
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) openAppSetup();
+            return;
+        }
+
+        if (TourStore.isDone(this)) return;
 
         ViewGroup main = findViewById(R.id.main);
         tour = new TourView(this, TourView.defaultSteps(), () -> {
@@ -344,9 +374,27 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
+    // first run only: "Choose your Distracting apps"
+    public void openAppSetup() {
+        pageTx().replace(R.id.fragmentContainer, new SetupAppsFragment())
+                .addToBackStack("editor")
+                .commit();
+    }
+
+    // called by that page when the person taps Continue (or Back)
+    public void onAppSetupDone() {
+        OnboardStore.markDone(this);
+        getSupportFragmentManager().popBackStack();
+        navBar.postDelayed(this::maybeStartTour, 500);
+    }
+
     // opens Settings (from the card in the top-right corner)
     public void openSettings() {
         if (tour != null) return;
+        if (FocusStore.isActive(this)) {
+            Toast.makeText(this, "Settings is locked during Focus", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (getSupportFragmentManager().getBackStackEntryCount() > 0) return;
         pageTx().replace(R.id.fragmentContainer, new SettingsFragment())
                 .addToBackStack("editor")

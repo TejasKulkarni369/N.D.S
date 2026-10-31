@@ -98,7 +98,7 @@ public class BlockService extends Service {
 
     // ---- worker-thread state ----
     private boolean focusWas = false;
-    private long lastSlowAt = 0, lastKillAt = 0, allowedAt = 0, lastLockCheckAt = 0;
+    private long lastSlowAt = 0, lastKillAt = 0, allowedAt = 0, lastLockCheckAt = 0, lastWidgetAt = 0;
 
     private final Runnable autoClose = this::closeBlockedApp;
     private final Runnable warnTimeout = () -> hideWarning(true);
@@ -147,6 +147,12 @@ public class BlockService extends Service {
     private void slowWork(UsageRepository.Snapshot s, long now) {
         IconManager.apply(this, s);
 
+        // home-screen widgets: once a minute, only while the screen is on
+        if (now - lastWidgetAt >= 60000) {
+            lastWidgetAt = now;
+            WidgetUpdater.updateAll(this);
+        }
+
         // Time Table lock-in: a session running right now starts Focus (the alarm does it too;
         // this catches a late alarm, a phone that was off, or a killed app)
         if (now - lastLockCheckAt >= 15000) {
@@ -171,6 +177,7 @@ public class BlockService extends Service {
             }
             if (!focusAllowed.isEmpty()) focusAllowed = new HashSet<>();
         }
+        if (focus != focusWas) WidgetUpdater.update(this, FocusWidget.class);
         focusWas = focus;
 
         // which apps are locked right now

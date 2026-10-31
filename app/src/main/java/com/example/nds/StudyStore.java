@@ -65,6 +65,7 @@ public class StudyStore {
             arr.put(o);
         }
         sp(c).edit().putString("list", arr.toString()).apply();
+        WidgetUpdater.update(c, TimeTableWidget.class);
     }
 
     public static StudySlot get(Context c, long id) {
