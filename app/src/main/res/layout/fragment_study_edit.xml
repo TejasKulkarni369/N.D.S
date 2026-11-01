@@ -107,7 +107,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@drawable/glass_card"
+                    android:background="@drawable/glass_card_flat"
                     android:hint="Add a chapter"
                     android:imeOptions="actionDone"
                     android:inputType="textCapSentences"

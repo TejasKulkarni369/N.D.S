@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- glass body -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:endColor="#0DFFFFFF"
+                android:startColor="#2EFFFFFF" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- soft glow from the top-left corner -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.0"
+                android:centerY="0.0"
+                android:endColor="#00FF7A1A"
+                android:gradientRadius="75%p"
+                android:startColor="#4DFF7A1A"
+                android:type="radial" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- outer border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#66FF7A1A" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- inner highlight (the light edge of the glass) -->
+    <item
+        android:bottom="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:top="1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#1AFFFFFF" />
+            <corners android:radius="23dp" />
+        </shape>
+    </item>
+</layer-list>

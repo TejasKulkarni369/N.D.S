@@ -72,7 +72,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:background="@drawable/glass_card"
+            android:background="@drawable/glass_card_flat"
             android:gravity="center"
             android:paddingTop="14dp"
             android:paddingBottom="14dp"

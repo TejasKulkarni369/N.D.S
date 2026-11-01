@@ -1,32 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- dark tint -->
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:angle="270"
-                android:endColor="#16FFFFFF"
-                android:startColor="#40FFFFFF" />
+            <solid android:color="#B3100D0A" />
             <corners android:radius="28dp" />
         </shape>
     </item>
+
+    <!-- glass body -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:endColor="#0DFFFFFF"
+                android:startColor="#33FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+
+    <!-- glow -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:centerX="0.1"
                 android:centerY="0.0"
                 android:endColor="#00FF7A1A"
-                android:gradientRadius="80%p"
+                android:gradientRadius="85%p"
                 android:startColor="#40FF7A1A"
                 android:type="radial" />
             <corners android:radius="28dp" />
         </shape>
     </item>
+
+    <!-- border and inner highlight -->
     <item>
         <shape android:shape="rectangle">
             <stroke
                 android:width="1dp"
                 android:color="#59FFFFFF" />
             <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item
+        android:bottom="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:top="1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#14FFFFFF" />
+            <corners android:radius="27dp" />
         </shape>
     </item>
 </layer-list>
