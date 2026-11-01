@@ -20,7 +20,7 @@ We don't even remember what was the first reel we saw or any other content we've
 6. App History
 7. Scheduling tasks with calendar
 8. Focus Mode with timer and Stop watch
-9. Study Time table for Students with Notification (Upcoming...)
+9. Study Time table for Students with Notification
 
 
 **Benefits of this app:**
