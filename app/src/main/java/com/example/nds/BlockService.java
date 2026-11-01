@@ -87,6 +87,21 @@ public class BlockService extends Service {
     private volatile Map<String, AppUsage> locked = new ConcurrentHashMap<>();
     private volatile Set<String> focusAllowed = new HashSet<>();   // empty = Focus is off
     private volatile boolean protectedNow = false;                 // uninstall protection is active
+    private volatile boolean watchingSettings = false;             // Settings is in front while protected
+    private volatile long guardHoldUntil = 0;
+
+    // Settings and the package installer: the only apps whose pages can undo the protection
+    private static final Set<String> SETTINGS_PKGS = new HashSet<>(java.util.Arrays.asList(
+            "com.android.settings", "com.google.android.packageinstaller",
+            "com.android.packageinstaller", "com.samsung.android.packageinstaller",
+            "com.miui.packageinstaller", "com.miui.securitycenter", "com.coloros.safecenter",
+            "com.iqoo.secure", "com.vivo.permissionmanager", "com.huawei.systemmanager"));
+
+    // pages that switch the protection off (the screen's class name contains one of these)
+    private static final String[] SENSITIVE = {
+            "deviceadmin", "device_admin", "accessib", "notificationaccess",
+            "notificationlistener", "usageaccess", "usage_access", "drawoverlay", "overlay",
+            "installedappdetails", "appinfo", "uninstall", "specialaccess", "specialappaccess"};
 
     // screens where the Accessibility service has a job (same list as accessibility_config.xml)
     private static final Set<String> WATCHED = new HashSet<>(java.util.Arrays.asList(
@@ -123,7 +138,7 @@ public class BlockService extends Service {
             } catch (Exception ignored) {
             }
             if (screenOn) {
-                boolean busy = !locked.isEmpty() || !focusAllowed.isEmpty();
+                boolean busy = !locked.isEmpty() || !focusAllowed.isEmpty() || watchingSettings;
                 bg.postDelayed(this, busy ? ACTIVE_MS : IDLE_MS);
             }
         }
@@ -223,6 +238,17 @@ public class BlockService extends Service {
             return;
         }
 
+        // protection WITHOUT Accessibility: a sensitive Settings page while limits are almost used
+        if (protectedNow && SETTINGS_PKGS.contains(fg)) {
+            watchingSettings = true;   // look closer while Settings is open
+            if (now >= guardHoldUntil && isSensitive(UsageRepository.foregroundClass())) {
+                guardHoldUntil = now + 1500;
+                ui.post(this::blockSensitiveScreen);
+            }
+        } else {
+            watchingSettings = false;
+        }
+
         // limits: did a locked app just open?
         final AppUsage u = locked.get(fg);
         if (u != null && !overlayUp && !closing && now > holdUntil) {
@@ -232,6 +258,21 @@ public class BlockService extends Service {
                 }
             });
         }
+    }
+
+    private static boolean isSensitive(String cls) {
+        if (cls == null) return false;
+        String c = cls.toLowerCase(java.util.Locale.ROOT);
+        for (String k : SENSITIVE) {
+            if (c.contains(k)) return true;
+        }
+        return false;
+    }
+
+    private void blockSensitiveScreen() {
+        goHome();
+        Toast.makeText(this, "Locked by N.D.S: your limits are almost used",
+                Toast.LENGTH_SHORT).show();
     }
 
     // ================= main thread: the Time's up screen =================
@@ -347,14 +388,11 @@ public class BlockService extends Service {
 
     // ================= Accessibility on demand (banking-safe) =================
 
-    // With the one-time ADB grant, the Accessibility service is ON only while it has a job:
-    //  - Force stop is running, or
-    //  - protection is active AND Settings / installer / Play Store is on the screen.
-    // Everywhere else (banking apps, UPI, everything) it is OFF, so nobody sees it.
+    // N.D.S works with Accessibility OFF (banking and UPI apps are happy).
+    // With the one-time ADB grant it is switched on ONLY while Force stop is running.
     private void gateTick(String fg) {
-        if (!AccessGate.canToggle(this)) return;   // no grant: the person manages it by hand
-        boolean want = closing
-                || (protectedNow && fg != null && WATCHED.contains(fg));
+        if (!AccessGate.canToggle(this)) return;   // no grant: it stays as the person set it
+        boolean want = closing;
         if (AccessGate.isEnabled(this) != want) AccessGate.set(this, want);
     }
 

@@ -157,7 +157,7 @@ public class SetupAppsFragment extends Fragment {
             h.check.setChecked(r.checked);
             h.hint.setText(r.checked
                     ? "Daily limit: " + UsageRepository.formatMinutes(
-                    UsageRepository.defaultLimit(r.item.pkg))
+                            UsageRepository.defaultLimit(r.item.pkg))
                     : "No limit");
 
             h.itemView.setOnClickListener(x -> {

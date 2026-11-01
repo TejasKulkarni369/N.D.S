@@ -95,6 +95,7 @@ public class UsageRepository {
     private static final Map<String, Long> trkDone = new HashMap<>();      // closed sessions today
     private static final Map<String, Integer> trkOpens = new HashMap<>();
     private static String trkCur = null;            // app on screen
+    private static String trkCurClass = null;       // the screen (activity class) of that app
     private static long trkCurStart = 0;
     private static String trkPausedPkg = null;
     private static long trkPausedAt = 0;
@@ -123,7 +124,9 @@ public class UsageRepository {
         String pkg = e.getPackageName();
 
         if (type == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-            if (pkg == null || pkg.equals(trkCur)) return;
+            if (pkg == null) return;
+            trkCurClass = e.getClassName();   // moving inside one app changes the screen too
+            if (pkg.equals(trkCur)) return;
             trkClose(trkCur, trkCurStart, t);
             // moving between screens inside one app is not a new "open"
             boolean quickReturn = pkg.equals(trkPausedPkg) && t - trkPausedAt < 1500;
@@ -148,6 +151,13 @@ public class UsageRepository {
         }
     }
 
+    // the activity class of the screen in front (for example a Settings page), or null
+    public static String foregroundClass() {
+        synchronized (TRACK_LOCK) {
+            return trkCurClass;
+        }
+    }
+
     @SuppressWarnings("deprecation")
     public static Snapshot snapshot(Context ctx) {
         refreshCache(ctx);
@@ -160,6 +170,7 @@ public class UsageRepository {
                 trkDone.clear();
                 trkOpens.clear();
                 trkSeen.clear();
+                trkCurClass = null;
                 trkCur = null;
                 trkCurStart = 0;
                 trkPausedPkg = null;

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_desc_screen_time">Total screen time today. Fits 1x1; stretch it to see the limits bar.</string>
+    <string name="widget_desc_tasks">Your next task. Stretch it taller to see more tasks.</string>
+    <string name="widget_desc_timetable">Your next study session. Stretch it taller to see all of today.</string>
+    <string name="widget_desc_focus">Start Focus mode in one tap, or see the time left. Fits 1x1.</string>
+    <string name="widget_desc_app_time">Today\'s screen time of one app you choose.</string>
+</resources>

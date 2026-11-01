@@ -17,12 +17,13 @@ public class WidgetUpdater {
         for (Class<? extends NdsWidget> cls : ALL) update(c, cls);
     }
 
+    // a widget whose content did not change is not sent to the launcher again
     public static void update(Context c, Class<? extends NdsWidget> cls) {
         try {
             AppWidgetManager m = AppWidgetManager.getInstance(c);
             int[] ids = m.getAppWidgetIds(new ComponentName(c, cls));
             if (ids == null || ids.length == 0) return;
-            cls.getDeclaredConstructor().newInstance().onUpdate(c, m, ids);
+            cls.getDeclaredConstructor().newInstance().refresh(c, m, ids, false);
         } catch (Exception ignored) {
         }
     }
