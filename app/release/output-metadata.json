@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.Final.NDS",
+  "applicationId": "com.app.NDS",
   "variantName": "release",
   "elements": [
     {
@@ -12,7 +12,7 @@
       "filters": [],
       "attributes": [],
       "versionCode": 3,
-      "versionName": "3.8",
+      "versionName": "3.9",
       "outputFile": "app-release.apk"
     }
   ],
