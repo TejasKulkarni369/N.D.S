@@ -55,6 +55,22 @@
             android:layout_weight="1" />
 
         <TextView
+            android:id="@+id/tourBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/glass_card"
+            android:paddingStart="22dp"
+            android:paddingTop="13dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="13dp"
+            android:text="Back"
+            android:textColor="@color/text"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/tourNext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
