@@ -5,55 +5,98 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:gravity="center_vertical"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:padding="12dp">
 
-    <TextView
-        android:id="@+id/wLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="SCREEN TIME TODAY"
-        android:textColor="#B3FFFFFF"
-        android:textSize="10sp" />
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp">
 
-    <TextView
-        android:id="@+id/wTotal"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="0m"
-        android:textColor="#FFFF7A1A"
-        android:textSize="28sp"
-        android:textStyle="bold" />
+        <ProgressBar
+            android:id="@+id/wRing"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:max="100"
+            android:maxHeight="64dp"
+            android:maxWidth="64dp"
+            android:minHeight="64dp"
+            android:minWidth="64dp"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_ring" />
 
-    <ProgressBar
-        android:id="@+id/wBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="6dp"
-        android:max="100"
-        android:progress="0"
-        android:progressDrawable="@drawable/widget_progress" />
+        <ProgressBar
+            android:id="@+id/wRingHot"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:max="100"
+            android:maxHeight="64dp"
+            android:maxWidth="64dp"
+            android:minHeight="64dp"
+            android:minWidth="64dp"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_ring_hot"
+            android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/wSub"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="#B3FFFFFF"
-        android:textSize="11sp" />
+        <TextView
+            android:id="@+id/wRingText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </FrameLayout>
 
-    <TextView
-        android:id="@+id/wSub2"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="#B3FFFFFF"
-        android:textSize="11sp"
-        android:visibility="gone" />
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/wLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="SCREEN TIME TODAY"
+            android:textColor="#B3FFFFFF"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/wTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="0m"
+            android:textColor="#FFFF7A1A"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/wSub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/wSub2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
 </LinearLayout>

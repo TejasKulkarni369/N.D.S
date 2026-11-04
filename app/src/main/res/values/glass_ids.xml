@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="glassLiteTag" type="id" />
+    <item name="expandAnim" type="id" />
+    <item name="expandOpen" type="id" />
 </resources>
