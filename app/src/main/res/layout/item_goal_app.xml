@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="10dp"
+    android:background="@drawable/glass_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+    <ImageView
+        android:id="@+id/goalIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/goalName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/goalHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_dim"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/goalMinus"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/glass_card_flat"
+        android:gravity="center"
+        android:text="–"
+        android:textColor="@color/text"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/goalValue"
+        android:layout_width="44dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/orange"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/goalPlus"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/btn_orange"
+        android:gravity="center"
+        android:text="+"
+        android:textColor="@color/on_orange"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+</LinearLayout>
