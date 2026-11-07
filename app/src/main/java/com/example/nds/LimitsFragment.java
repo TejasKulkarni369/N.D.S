@@ -28,6 +28,8 @@ public class LimitsFragment extends Fragment {
         list = v.findViewById(R.id.limitList);
         bypassStatus = v.findViewById(R.id.bypassStatus);
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
+        v.findViewById(R.id.limitsGoals).setOnClickListener(
+                b -> ((MainActivity) requireActivity()).openGoals());
 
         // "Add app" = pick a Distracting app on the Apps page
         v.findViewById(R.id.addAppBtn).setOnClickListener(
