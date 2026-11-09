@@ -41,50 +41,6 @@
             android:textSize="30sp"
             android:textStyle="bold" />
 
-        <!-- Goals -->
-        <LinearLayout
-            android:id="@+id/settingsGoals"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/glass_card_accent"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="18dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Goals"
-                    android:textColor="@color/text"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Screen time goal for each day, and opens per day for your apps."
-                    android:textColor="@color/text_dim"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_chevron" />
-        </LinearLayout>
-
         <!-- Optimizations: the three modes are hidden until this card is tapped -->
         <LinearLayout
             android:id="@+id/optHeader"

@@ -58,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(
                 new FragmentManager.FragmentLifecycleCallbacks() {
                     @Override
-                    public void onFragmentViewCreated(@androidx.annotation.NonNull FragmentManager fm,
-                                                      @androidx.annotation.NonNull Fragment f,
-                                                      @androidx.annotation.NonNull View v,
+                    public void onFragmentViewCreated(@NonNull FragmentManager fm,
+                                                      @NonNull Fragment f,
+                                                      @NonNull View v,
                                                       @androidx.annotation.Nullable Bundle s) {
                         GlassLite.apply(MainActivity.this, v);
                     }
@@ -421,9 +421,12 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Settings is locked during Focus", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (getSupportFragmentManager().getBackStackEntryCount() > 0) return;
+        // from any page (Goals, a task being written, Apps...): Settings opens on top and
+        // Back returns to that page. Only when Settings is already open nothing happens.
+        FragmentManager fm = getSupportFragmentManager();
+        if (fm.findFragmentById(R.id.fragmentContainer) instanceof SettingsFragment) return;
         pageTx().replace(R.id.fragmentContainer, new SettingsFragment())
-                .addToBackStack("editor")
+                .addToBackStack("settings")
                 .commit();
     }
 
@@ -432,7 +435,8 @@ public class MainActivity extends AppCompatActivity {
     public void replayTour() {
         if (tour != null || FocusStore.isActive(this)) return;
         TourStore.reset(this);                          // the full tour, from the welcome card
-        getSupportFragmentManager().popBackStack();     // close Settings
+        getSupportFragmentManager().popBackStack(null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);   // close Settings and every page under it
         select(0);                                      // the tour points at things on Home
         navBar.postDelayed(this::maybeStartTour, 450);
     }

@@ -161,7 +161,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Opens per day"
+                android:text="Goals for apps"
                 android:textColor="@color/text"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -170,7 +170,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="How many times a day you want to open an app. You get a warning when you reach it. Off means no goal."
+                android:text="Choose one goal for each app: how many times you open it, or how long you use it each day. You get a warning when you reach it. Off means no goal."
                 android:textColor="@color/text_dim"
                 android:textSize="13sp" />
         </LinearLayout>
