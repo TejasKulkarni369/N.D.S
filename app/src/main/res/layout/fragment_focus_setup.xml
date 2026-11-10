@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    android:scrollbars="none">
+
+    <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
+        android:paddingBottom="120dp"
     android:paddingStart="20dp"
     android:paddingTop="20dp"
     android:paddingEnd="20dp">
@@ -32,12 +42,6 @@
         android:textColor="@color/text"
         android:textSize="30sp"
         android:textStyle="bold" />
-
-    <com.example.nds.ExitsLeftView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:textSize="12sp" />
 
     <!-- stopwatch: starts here and keeps running inside Focus -->
     <LinearLayout
@@ -324,16 +328,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="Phone and Contacts are always allowed. Pick 1 to 5 more."
+        android:text="Phone and Contacts are always allowed. Pick exactly 5 more."
         android:textColor="@color/text_dim"
         android:textSize="12sp" />
 
     <androidx.recyclerview.widget.RecyclerView
+        android:nestedScrollingEnabled="false"
+        android:overScrollMode="never"
         android:id="@+id/focusPickList"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="1" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/focusStart"
@@ -352,3 +357,4 @@
         app:backgroundTint="@color/orange"
         app:cornerRadius="20dp" />
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -38,7 +38,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="A goal is a promise to yourself. N.D.S warns you, it does not lock anything."
+            android:text="N.D.S warns you when you get close. For an app it can also lock the app for the rest of the day once you reach the goal."
             android:textColor="@color/text_dim"
             android:textSize="13sp" />
 
@@ -170,7 +170,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Choose one goal for each app: how many times you open it, or how long you use it each day. You get a warning when you reach it. Off means no goal."
+                android:text="Choose one goal for each app: how many times you open it, or how long you use it each day. With Lock on, the app is blocked until tomorrow when you reach it. Off means no goal."
                 android:textColor="@color/text_dim"
                 android:textSize="13sp" />
         </LinearLayout>

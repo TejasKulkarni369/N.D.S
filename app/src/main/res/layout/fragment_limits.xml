@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    android:scrollbars="none">
+
+    <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
+        android:paddingBottom="120dp"
     android:paddingStart="20dp"
     android:paddingTop="20dp"
     android:paddingEnd="20dp">
@@ -30,7 +40,8 @@
         android:background="@drawable/glass_card"
         android:lineSpacingExtra="4dp"
         android:padding="16dp"
-        android:text="Once a limit is used up, the app stays locked until tomorrow.\nLower limits apply now. Higher limits apply tomorrow."
+        android:text="Once a limit is used up, the app stays locked until tomorrow.\
+Lower limits apply now. Higher limits apply tomorrow."
         android:textColor="@color/text_dim"
         android:textSize="13sp" />
 
@@ -87,11 +98,12 @@
         android:textSize="12sp" />
 
     <androidx.recyclerview.widget.RecyclerView
+        android:nestedScrollingEnabled="false"
+        android:overScrollMode="never"
         android:id="@+id/limitList"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        android:layout_weight="1" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addAppBtn"
@@ -110,3 +122,4 @@
         app:backgroundTint="@color/orange"
         app:cornerRadius="20dp" />
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>
