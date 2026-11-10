@@ -18,7 +18,7 @@ We don't even remember what was the first reel we saw or any other content we've
 4. Study Time table for Students with Notification
 5. After the completion of limit NO Excuses like "Ignore the limit for the day" or "Only use for 5, 10, 15 mins" none of this sh*t is present
 6. App History
-7. Scheduling tasks with calendar
+7. Scheduling tasks with calendar and timing
 8. Focus Mode with timer and Stop watch
 9. Study Time table for Students with Notification
 
