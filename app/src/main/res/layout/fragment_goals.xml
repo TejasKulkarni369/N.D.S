@@ -13,7 +13,7 @@
         android:paddingStart="20dp"
         android:paddingTop="72dp"
         android:paddingEnd="20dp"
-        android:paddingBottom="130dp">
+        android:paddingBottom="32dp">
 
         <TextView
             android:id="@+id/goalsBack"

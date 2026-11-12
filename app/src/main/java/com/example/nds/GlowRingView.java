@@ -110,8 +110,10 @@ public class GlowRingView extends View {
             }
         }
 
-        if (pulsing || settling) {
-            postInvalidateOnAnimation();
+        if (settling) {
+            postInvalidateOnAnimation();                             // gliding: every frame
+        } else if (pulsing) {
+            postInvalidateDelayed(Motion.frameDelay(getContext()));  // breathing: a calm rate
         } else {
             lastFrame = 0;   // idle: the next change starts with a clean time step
         }

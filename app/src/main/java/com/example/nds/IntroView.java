@@ -13,7 +13,6 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 
@@ -39,6 +38,10 @@ public class IntroView extends View {
     private final RectF arch = new RectF();
     private final Path shackle = new Path();
     private final OvershootInterpolator overshoot = new OvershootInterpolator(2.2f);
+
+    // the layered glow of the ring: made once, not on every frame
+    private static final int[] ARC_ALPHAS = {0x33, 0x66, 0xFF};
+    private final float[] arcWidths = new float[3];
 
     // the app intro
     public IntroView(Context ctx) {
@@ -111,11 +114,12 @@ public class IntroView extends View {
         float sweep = 360f * easeOut(seg(t, 0f, 0.45f));
         if (sweep > 0f) {
             oval.set(cx - r, cy - r, cx + r, cy + r);
-            float[] widths = {sw + 14 * d, sw + 7 * d, sw};
-            int[] alphas = {0x33, 0x66, 0xFF};
+            arcWidths[0] = sw + 14 * d;
+            arcWidths[1] = sw + 7 * d;
+            arcWidths[2] = sw;
             for (int i = 0; i < 3; i++) {
-                ringPaint.setStrokeWidth(widths[i]);
-                ringPaint.setColor((alphas[i] << 24) | 0x00FF7A1A);
+                ringPaint.setStrokeWidth(arcWidths[i]);
+                ringPaint.setColor((ARC_ALPHAS[i] << 24) | 0x00FF7A1A);
                 canvas.drawArc(oval, -90f, sweep, false, ringPaint);
             }
         }
@@ -166,7 +170,7 @@ public class IntroView extends View {
 
     public void start(Runnable onRevealStart) {
         ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
-        a.setDuration(DURATION);
+        a.setDuration(Motion.ms(getContext(), DURATION));
         a.setInterpolator(new LinearInterpolator());
         a.addUpdateListener(an -> {
             t = (float) an.getAnimatedValue();
@@ -183,12 +187,13 @@ public class IntroView extends View {
 
     private void exit(Runnable onRevealStart) {
         if (onRevealStart != null) onRevealStart.run();
+        setLayerType(LAYER_TYPE_HARDWARE, null);   // drawn once, then only moved and faded
         animate()
                 .alpha(0f)
                 .scaleX(1.12f)
                 .scaleY(1.12f)
-                .setDuration(450)
-                .setInterpolator(new DecelerateInterpolator())
+                .setDuration(Motion.ms(getContext(), 460))
+                .setInterpolator(Motion.DECEL)
                 .withEndAction(() -> {
                     ViewGroup p = (ViewGroup) getParent();
                     if (p != null) p.removeView(this);

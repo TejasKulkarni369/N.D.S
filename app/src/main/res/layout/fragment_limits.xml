@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<androidx.core.widget.NestedScrollView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipToPadding="false"
@@ -13,7 +17,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-        android:paddingBottom="120dp"
+        android:paddingBottom="104dp"
     android:paddingStart="20dp"
     android:paddingTop="20dp"
     android:paddingEnd="20dp">
@@ -105,12 +109,25 @@ Lower limits apply now. Higher limits apply tomorrow."
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp" />
 
+    
+</LinearLayout>
+</androidx.core.widget.NestedScrollView>
+
+<!-- pinned to the nav bar: always visible, never scrolls away -->
+<FrameLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:background="@drawable/pinned_fade"
+    android:paddingStart="20dp"
+    android:paddingTop="18dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="12dp">
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addAppBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="4dp"
         android:elevation="12dp"
         android:outlineAmbientShadowColor="@color/orange"
         android:outlineSpotShadowColor="@color/orange"
@@ -121,5 +138,5 @@ Lower limits apply now. Higher limits apply tomorrow."
         android:textStyle="bold"
         app:backgroundTint="@color/orange"
         app:cornerRadius="20dp" />
-</LinearLayout>
-</androidx.core.widget.NestedScrollView>
+</FrameLayout>
+</FrameLayout>

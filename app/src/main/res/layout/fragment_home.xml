@@ -15,7 +15,7 @@
     android:paddingStart="20dp"
     android:paddingTop="20dp"
     android:paddingEnd="20dp"
-        android:paddingBottom="120dp">
+        android:paddingBottom="28dp">
 
     <TextView
         android:layout_width="wrap_content"
@@ -32,7 +32,7 @@
         android:textSize="30sp"
         android:textStyle="bold" />
 
-    <LinearLayout
+    <com.example.nds.DismissibleCard
         android:id="@+id/permCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -69,7 +69,16 @@
             android:textColor="@color/on_orange"
             app:backgroundTint="@color/orange"
             app:cornerRadius="20dp" />
-    </LinearLayout>
+    
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="14dp"
+            android:text="‹  Swipe to ignore  ›"
+            android:textColor="@color/text_dim"
+            android:textSize="11sp" />
+    </com.example.nds.DismissibleCard>
 
     <LinearLayout
         android:id="@+id/dataGroup"

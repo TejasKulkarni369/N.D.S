@@ -3,6 +3,7 @@ package com.example.nds;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.PowerManager;
 
 public class Perf {
 
@@ -86,9 +87,11 @@ public class Perf {
         return mode(c) != PERFORMANCE;
     }
 
-    // moving background glow, breathing ring glow
+    // moving background glow, breathing ring glow (also off while Battery saver is on)
     public static boolean ambient(Context c) {
-        return mode(c) == QUALITY;
+        if (mode(c) != QUALITY) return false;
+        PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+        return pm == null || !pm.isPowerSaveMode();
     }
 
     // animated cards (dialogs)

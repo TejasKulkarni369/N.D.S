@@ -32,6 +32,8 @@ public class FocusSetupFragment extends Fragment {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<AppList.Item> apps = new ArrayList<>();
     private final Set<String> picked = new LinkedHashSet<>();
+    private View startBar;                 // the pinned "Start Focus" button
+    private boolean startShown = false;
 
     private EditText hh, mm, ss;
     private TextView counter, swTime, swToggle, swReset;
@@ -64,6 +66,7 @@ public class FocusSetupFragment extends Fragment {
         mm = v.findViewById(R.id.focusM);
         ss = v.findViewById(R.id.focusS);
         counter = v.findViewById(R.id.focusCount);
+        startBar = v.findViewById(R.id.focusStartBar);
         swTime = v.findViewById(R.id.swTime);
         swToggle = v.findViewById(R.id.swToggle);
         swReset = v.findViewById(R.id.swReset);
@@ -144,6 +147,7 @@ public class FocusSetupFragment extends Fragment {
 
     private void updateCounter() {
         counter.setText(picked.size() + "/" + FocusStore.APP_COUNT);
+        showStart(picked.size() >= MIN_APPS);   // appears with the first chosen app
     }
 
     private int num(EditText et) {
@@ -153,6 +157,35 @@ public class FocusSetupFragment extends Fragment {
             return Integer.parseInt(t);
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    // slides "Start Focus" up when an app is chosen, and down when none is left
+    private void showStart(boolean show) {
+        if (startBar == null || startShown == show) return;
+        startShown = show;
+        float rise = 28 * getResources().getDisplayMetrics().density;
+        startBar.animate().cancel();
+
+        if (show) {
+            startBar.setVisibility(View.VISIBLE);
+            if (Motion.on(requireContext())) {
+                startBar.setAlpha(0f);
+                startBar.setTranslationY(rise);
+                startBar.animate().alpha(1f).translationY(0f)
+                        .setDuration(Motion.ms(requireContext(), 320))
+                        .setInterpolator(Motion.DECEL).start();
+            } else {
+                startBar.setAlpha(1f);
+                startBar.setTranslationY(0f);
+            }
+        } else if (Motion.on(requireContext())) {
+            startBar.animate().alpha(0f).translationY(rise)
+                    .setDuration(Motion.ms(requireContext(), 220))
+                    .setInterpolator(Motion.ACCEL)
+                    .withEndAction(() -> startBar.setVisibility(View.GONE)).start();
+        } else {
+            startBar.setVisibility(View.GONE);
         }
     }
 

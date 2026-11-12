@@ -137,7 +137,8 @@ public class GlowBackgroundView extends View {
             canvas.restore();
         }
 
-        if (running && animated) postInvalidateOnAnimation();
+        // a slow glow does not need 60+ frames a second: fewer frames, less heat and battery
+        if (running && animated) postInvalidateDelayed(Motion.frameDelay(getContext()));
     }
 
     @Override
