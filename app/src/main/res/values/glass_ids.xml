@@ -3,4 +3,5 @@
     <item name="glassLiteTag" type="id" />
     <item name="expandAnim" type="id" />
     <item name="expandOpen" type="id" />
+    <item name="swipeIgnoreTag" type="id" />
 </resources>
